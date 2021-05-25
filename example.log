@@ -70,3 +70,75 @@ DEBUG:paramiko.transport:[chan 1] Sesch channel 1 request ok
 DEBUG:paramiko.transport:[chan 1] EOF sent (1)
 DEBUG:paramiko.transport:[chan 1] EOF received (1)
 INFO:root:Running move plot command: rsync -av --remove-source-files -e ssh /Users/cciollaro/PycharmProjects/hotplots/testdir_buffer/plot-k32-2021-05-24-12-36-cctesting.plot cc@192.168.99.199:/media/cc/elements-12tb-1/chia-plots/
+INFO:root:Watching source dirs: 
+INFO:root:['/Users/cciollaro/PycharmProjects/hotplots/testdir_buffer/']
+INFO:root:Considering destinations: 
+INFO:root:[{'type': 'local', 'dir': '/Users/cciollaro/PycharmProjects/hotplots/testdir_destination/'}, {'type': 'remote', 'hostname': 'thinkcentre.local', 'username': 'cc', 'port': '22', 'dir': '/media/cc/elements-12tb-1/chia-plots/'}]
+DEBUG:paramiko.transport:starting thread (client mode): 0xa1c1490
+DEBUG:paramiko.transport:Local version/idstring: SSH-2.0-paramiko_2.7.2
+DEBUG:paramiko.transport:Remote version/idstring: SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_8.2p1)
+DEBUG:paramiko.transport:kex algos:['curve25519-sha256', 'curve25519-sha256@libssh.org', 'ecdh-sha2-nistp256', 'ecdh-sha2-nistp384', 'ecdh-sha2-nistp521', 'diffie-hellman-group-exchange-sha256', 'diffie-hellman-group16-sha512', 'diffie-hellman-group18-sha512', 'diffie-hellman-group14-sha256'] server key:['rsa-sha2-512', 'rsa-sha2-256', 'ssh-rsa', 'ecdsa-sha2-nistp256', 'ssh-ed25519'] client encrypt:['chacha20-poly1305@openssh.com', 'aes128-ctr', 'aes192-ctr', 'aes256-ctr', 'aes128-gcm@openssh.com', 'aes256-gcm@openssh.com'] server encrypt:['chacha20-poly1305@openssh.com', 'aes128-ctr', 'aes192-ctr', 'aes256-ctr', 'aes128-gcm@openssh.com', 'aes256-gcm@openssh.com'] client mac:['umac-64-etm@openssh.com', 'umac-128-etm@openssh.com', 'hmac-sha2-256-etm@openssh.com', 'hmac-sha2-512-etm@openssh.com', 'hmac-sha1-etm@openssh.com', 'umac-64@openssh.com', 'umac-128@openssh.com', 'hmac-sha2-256', 'hmac-sha2-512', 'hmac-sha1'] server mac:['umac-64-etm@openssh.com', 'umac-128-etm@openssh.com', 'hmac-sha2-256-etm@openssh.com', 'hmac-sha2-512-etm@openssh.com', 'hmac-sha1-etm@openssh.com', 'umac-64@openssh.com', 'umac-128@openssh.com', 'hmac-sha2-256', 'hmac-sha2-512', 'hmac-sha1'] client compress:['none', 'zlib@openssh.com'] server compress:['none', 'zlib@openssh.com'] client lang:[''] server lang:[''] kex follows?False
+DEBUG:paramiko.transport:Kex agreed: curve25519-sha256@libssh.org
+DEBUG:paramiko.transport:HostKey agreed: ssh-ed25519
+DEBUG:paramiko.transport:Cipher agreed: aes128-ctr
+DEBUG:paramiko.transport:MAC agreed: hmac-sha2-256
+DEBUG:paramiko.transport:Compression agreed: none
+DEBUG:paramiko.transport:kex engine KexCurve25519 specified hash_algo <built-in function openssl_sha256>
+DEBUG:paramiko.transport:Switch to new keys ...
+DEBUG:paramiko.transport:Adding ssh-ed25519 host key for [192.168.99.199]:22: b'c7325267e341f373678f5edce38c57c0'
+DEBUG:paramiko.transport:Trying discovered key b'ad3450cc66d8fdc83c9123ed1081c109' in /Users/cciollaro/.ssh/id_ed25519
+DEBUG:paramiko.transport:userauth is OK
+INFO:paramiko.transport:Authentication (publickey) successful!
+DEBUG:paramiko.transport:[chan 0] Max packet in: 32768 bytes
+DEBUG:paramiko.transport:Received global request "hostkeys-00@openssh.com"
+DEBUG:paramiko.transport:Rejecting "hostkeys-00@openssh.com" global request from server.
+DEBUG:paramiko.transport:Debug msg: b'/home/cc/.ssh/authorized_keys:1: key options: agent-forwarding port-forwarding pty user-rc x11-forwarding'
+DEBUG:paramiko.transport:[chan 0] Max packet out: 32768 bytes
+DEBUG:paramiko.transport:Secsh channel 0 opened.
+DEBUG:paramiko.transport:[chan 0] Sesch channel 0 request ok
+DEBUG:paramiko.transport:[chan 0] EOF sent (0)
+DEBUG:paramiko.transport:[chan 0] EOF received (0)
+DEBUG:paramiko.transport:[chan 1] Max packet in: 32768 bytes
+DEBUG:paramiko.transport:[chan 1] Max packet out: 32768 bytes
+DEBUG:paramiko.transport:Secsh channel 1 opened.
+DEBUG:paramiko.transport:[chan 1] Sesch channel 1 request ok
+DEBUG:paramiko.transport:[chan 1] EOF sent (1)
+DEBUG:paramiko.transport:[chan 1] EOF received (1)
+INFO:root:Running move plot command: rsync -av --remove-source-files /Users/cciollaro/PycharmProjects/hotplots/testdir_buffer/plot-k32-2021-05-24-12-36-cctesting.plot /Users/cciollaro/PycharmProjects/hotplots/testdir_destination/
+INFO:root:Watching source dirs: 
+INFO:root:['/Users/cciollaro/PycharmProjects/hotplots/testdir_buffer/']
+INFO:root:Considering destinations: 
+INFO:root:[{'type': 'local', 'dir': '/Users/cciollaro/PycharmProjects/hotplots/testdir_destination/'}, {'type': 'remote', 'hostname': 'thinkcentre.local', 'username': 'cc', 'port': '22', 'dir': '/media/cc/elements-12tb-1/chia-plots/'}]
+DEBUG:paramiko.transport:starting thread (client mode): 0x6d57490
+DEBUG:paramiko.transport:Local version/idstring: SSH-2.0-paramiko_2.7.2
+DEBUG:paramiko.transport:Remote version/idstring: SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_8.2p1)
+DEBUG:paramiko.transport:kex algos:['curve25519-sha256', 'curve25519-sha256@libssh.org', 'ecdh-sha2-nistp256', 'ecdh-sha2-nistp384', 'ecdh-sha2-nistp521', 'diffie-hellman-group-exchange-sha256', 'diffie-hellman-group16-sha512', 'diffie-hellman-group18-sha512', 'diffie-hellman-group14-sha256'] server key:['rsa-sha2-512', 'rsa-sha2-256', 'ssh-rsa', 'ecdsa-sha2-nistp256', 'ssh-ed25519'] client encrypt:['chacha20-poly1305@openssh.com', 'aes128-ctr', 'aes192-ctr', 'aes256-ctr', 'aes128-gcm@openssh.com', 'aes256-gcm@openssh.com'] server encrypt:['chacha20-poly1305@openssh.com', 'aes128-ctr', 'aes192-ctr', 'aes256-ctr', 'aes128-gcm@openssh.com', 'aes256-gcm@openssh.com'] client mac:['umac-64-etm@openssh.com', 'umac-128-etm@openssh.com', 'hmac-sha2-256-etm@openssh.com', 'hmac-sha2-512-etm@openssh.com', 'hmac-sha1-etm@openssh.com', 'umac-64@openssh.com', 'umac-128@openssh.com', 'hmac-sha2-256', 'hmac-sha2-512', 'hmac-sha1'] server mac:['umac-64-etm@openssh.com', 'umac-128-etm@openssh.com', 'hmac-sha2-256-etm@openssh.com', 'hmac-sha2-512-etm@openssh.com', 'hmac-sha1-etm@openssh.com', 'umac-64@openssh.com', 'umac-128@openssh.com', 'hmac-sha2-256', 'hmac-sha2-512', 'hmac-sha1'] client compress:['none', 'zlib@openssh.com'] server compress:['none', 'zlib@openssh.com'] client lang:[''] server lang:[''] kex follows?False
+DEBUG:paramiko.transport:Kex agreed: curve25519-sha256@libssh.org
+DEBUG:paramiko.transport:HostKey agreed: ssh-ed25519
+DEBUG:paramiko.transport:Cipher agreed: aes128-ctr
+DEBUG:paramiko.transport:MAC agreed: hmac-sha2-256
+DEBUG:paramiko.transport:Compression agreed: none
+DEBUG:paramiko.transport:kex engine KexCurve25519 specified hash_algo <built-in function openssl_sha256>
+DEBUG:paramiko.transport:Switch to new keys ...
+DEBUG:paramiko.transport:Adding ssh-ed25519 host key for [192.168.99.199]:22: b'c7325267e341f373678f5edce38c57c0'
+DEBUG:paramiko.transport:Trying discovered key b'ad3450cc66d8fdc83c9123ed1081c109' in /Users/cciollaro/.ssh/id_ed25519
+DEBUG:paramiko.transport:userauth is OK
+INFO:paramiko.transport:Authentication (publickey) successful!
+DEBUG:paramiko.transport:[chan 0] Max packet in: 32768 bytes
+DEBUG:paramiko.transport:Received global request "hostkeys-00@openssh.com"
+DEBUG:paramiko.transport:Rejecting "hostkeys-00@openssh.com" global request from server.
+DEBUG:paramiko.transport:Debug msg: b'/home/cc/.ssh/authorized_keys:1: key options: agent-forwarding port-forwarding pty user-rc x11-forwarding'
+DEBUG:paramiko.transport:[chan 0] Max packet out: 32768 bytes
+DEBUG:paramiko.transport:Secsh channel 0 opened.
+DEBUG:paramiko.transport:[chan 0] Sesch channel 0 request ok
+DEBUG:paramiko.transport:[chan 0] EOF sent (0)
+DEBUG:paramiko.transport:[chan 0] EOF received (0)
+DEBUG:paramiko.transport:[chan 1] Max packet in: 32768 bytes
+DEBUG:paramiko.transport:[chan 1] Max packet out: 32768 bytes
+DEBUG:paramiko.transport:Secsh channel 1 opened.
+DEBUG:paramiko.transport:[chan 1] Sesch channel 1 request ok
+DEBUG:paramiko.transport:[chan 1] EOF sent (1)
+DEBUG:paramiko.transport:[chan 1] EOF received (1)
+INFO:root:Running move plot command: rsync -av --remove-source-files /Users/cciollaro/PycharmProjects/hotplots/testdir_buffer/plot-k32-2021-05-24-12-36-cctesting.plot /Users/cciollaro/PycharmProjects/hotplots/testdir_destination/

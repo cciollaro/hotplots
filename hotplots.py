@@ -5,6 +5,7 @@ import socket
 import logging
 import subprocess
 
+
 class Hotplots:
     def __init__(self):
         logging.basicConfig(filename='example.log', encoding='utf-8', level=logging.DEBUG)
@@ -30,7 +31,6 @@ class Hotplots:
         logging.info("Considering destinations: ")
         logging.info(self.destination_configs)
 
-
     def run(self):
         # load up the status of all of our destinations
         destinations = [self.get_destination_info(destination_config) for destination_config in self.destination_configs]
@@ -40,8 +40,8 @@ class Hotplots:
                 source_plot = {
                     "absolute_reference": source_plot_absolute_reference,
                     "basename": os.path.basename(source_plot_absolute_reference),
-                    "size": self.get_local_plot_file_size(source_plot_absolute_reference),
-                    "metadata": self.parse_plot_file_metadata(source_plot_absolute_reference)
+                    "size": os.path.getsize(source_plot_absolute_reference),
+                    "metadata": self.parse_plot_filename_metadata(source_plot_absolute_reference)
                 }
 
                 if not self.is_already_being_transferred(destinations, source_plot):
@@ -52,7 +52,6 @@ class Hotplots:
                     )
                     self.move_plot(source_plot, chosen_destination)
 
-
     def move_plot(self, source_plot, destination):
         if destination["config"]["type"] == "local":
             move_plot_cmd = "rsync -av --remove-source-files %s %s" % (
@@ -61,7 +60,10 @@ class Hotplots:
         else:  # remote
             resolved_ip = socket.gethostbyname(destination['config']['hostname'])
             move_plot_cmd = "rsync -av --remove-source-files -e ssh %s %s@%s:%s" % (
-                source_plot["absolute_reference"], destination["config"]["username"], resolved_ip, destination["config"]["dir"]
+                source_plot["absolute_reference"],
+                destination["config"]["username"],
+                resolved_ip,
+                destination["config"]["dir"]
             )
 
         logging.info("Running move plot command: %s" % move_plot_cmd)
@@ -79,11 +81,10 @@ class Hotplots:
             eligible_destinations.sort(key=lambda d: d["free_bytes"], reverse=True)
             return eligible_destinations[0]
 
-
     def is_already_being_transferred(self, destinations, source_plot_file):
         for destination in destinations:
             for in_flight_transfer in destination["in_flight_transfers"]:
-                in_flight_metadata = self.parse_plot_file_metadata(in_flight_transfer)
+                in_flight_metadata = self.parse_plot_filename_metadata(in_flight_transfer)
                 if source_plot_file["metadata"]["plot_id"] == in_flight_metadata["plot_id"]:
                     return True
         return False
@@ -102,7 +103,7 @@ class Hotplots:
         else:  # remote
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            resolved_ip = socket.gethostbyname(destination_config['hostname'])  # paramiko doesn't handle mDNS
+            resolved_ip = socket.gethostbyname(destination_config['hostname'])
             client.connect(resolved_ip, port=destination_config['port'], username=destination_config['username'])
 
             _, free_1k_blocks_stdout, _ = client.exec_command(free_1k_blocks_cmd)
@@ -123,11 +124,9 @@ class Hotplots:
             "in_flight_transfers": in_flight_transfers
         }
 
-
     # parses the metadata out of a plot file name - works for complete
     # plots as well as temporary rsync plots (starting with .)
-    @staticmethod
-    def parse_plot_file_metadata(plot_filename):
+    def parse_plot_filename_metadata(self, plot_filename):
         basename = os.path.basename(plot_filename)
         if basename.startswith("."):
             # .plot-k32-2021-05-24-12-36-990e8afe5494e4fd91aef0bcd5548f529895400011528e56094c1c3c96edcd27.plot.y29pgW
@@ -148,6 +147,3 @@ class Hotplots:
             "minute": minute,
             "plot_id": plot_id
         }
-
-    def get_local_plot_file_size(self, plot_filename):
-        return os.path.getsize(plot_filename)
