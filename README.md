@@ -7,8 +7,8 @@ _For updating from previous version, see section below._
 1. Clone the repository
 
 ```
-git clone https://github.com/martomi/chiadog.git
-cd chiadog
+git clone https://github.com/cciollaro/hotplots.git
+cd hotplots
 ```
 
 2. Run the install script.
@@ -30,7 +30,7 @@ cp config-example.yaml config.yaml
 _Skip this if you followed the above section_.
 
 ```
-cd chiadog
+cd hotplots
 
 git fetch
 git checkout main
