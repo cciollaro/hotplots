@@ -1,24 +1,27 @@
-# This is a sample Python script.
-
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
 import hotplots
+import time
+import yaml
+import logging
 
+from hotplots_config import HotplotsConfig
+from hotplots import Hotplots
 
-# Press the green button in the gutter to run the script.
+# move this directory to my plotter (for development):
+# rsync -alPvz /Users/cciollaro/PycharmProjects/hotplots cc@cc-desktop-linux.local:/home/cc
+# rm -rf venv
+# python3 -m venv venv
+# . ./venv/bin/activate
+# pip install -r requirements.txt
+# python main.py
 if __name__ == '__main__':
-    # archive goals
-    # - how to choose drive
-    #   - random
-    #   - lowest first
-    # consecutive writes per directory
-    # list of targets
-    # hostname, directory
-    # full drive strategy:
-    # - replacement goals:
-    # - replace non-smart-contract plots
-    # - replace
-    hotplots = hotplots.Hotplots()
-    hotplots.run()
+    logging.basicConfig(filename='hotplots.log', level=logging.DEBUG) # TODO: figure out why encoding='utf-8' doesn't work on linux/py3.8
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    with open("config.yaml", 'r') as stream:
+        data_loaded = yaml.safe_load(stream)
+
+    config = HotplotsConfig(data_loaded)
+    hotplots = Hotplots(config)
+
+    while True:
+        hotplots.run()
+        time.sleep(60)

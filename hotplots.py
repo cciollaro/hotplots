@@ -7,35 +7,22 @@ import subprocess
 
 
 class Hotplots:
-    def __init__(self):
-        logging.basicConfig(filename='example.log', encoding='utf-8', level=logging.DEBUG)
+    def __init__(self, config):
 
-        # TODO: when parsing dirs, make sure they always end in trailing /
-        self.source_dirs = ["/Users/cciollaro/PycharmProjects/hotplots/testdir_buffer/"]
-        self.destination_configs = [
-            {
-                "type": "local",
-                "dir": "/Users/cciollaro/PycharmProjects/hotplots/testdir_destination/"
-            },
-            {
-                "type": "remote",
-                "hostname": "thinkcentre.local",
-                "username": "cc",
-                "port": "22",
-                "dir": "/media/cc/elements-12tb-1/chia-plots/"
-            }
-        ]
+        self.config = config
+
         logging.info("Watching source dirs: ")
-        logging.info(self.source_dirs)
+        logging.info(self.config.sources())
 
         logging.info("Considering destinations: ")
-        logging.info(self.destination_configs)
+        logging.info(self.config.destinations())
 
     def run(self):
         # load up the status of all of our destinations
-        destinations = [self.get_destination_info(destination_config) for destination_config in self.destination_configs]
+        # TODO handle and log case where destination info cannot be loaded
+        destinations = [self.get_destination_info(destination_config) for destination_config in self.config.destinations() if destination_config is not None]
 
-        for source_dir in self.source_dirs:
+        for source_dir in self.config.sources():
             for source_plot_absolute_reference in glob.glob(source_dir + "*.plot"):
                 source_plot = {
                     "absolute_reference": source_plot_absolute_reference,
@@ -90,39 +77,48 @@ class Hotplots:
         return False
 
     def get_destination_info(self, destination_config):
-        free_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $4}'" % (destination_config["dir"])
-        in_flight_transfers_cmd = "find %s -name '.*.plot.*'" % (destination_config["dir"])
+        try:
+            logging.debug("Loading destination info for %s" % destination_config)
+            free_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $4}'" % (destination_config["dir"])
+            in_flight_transfers_cmd = "find %s -name '.*.plot.*'" % (destination_config["dir"])
 
-        if destination_config["type"] == "local":
-            free_bytes = int(os.popen(free_1k_blocks_cmd).read().rstrip()) * 1000
-            in_flight_transfers_str = os.popen(in_flight_transfers_cmd).read().rstrip()
-            if len(in_flight_transfers_str) == 0:
-                in_flight_transfers = []
-            else:
-                in_flight_transfers = in_flight_transfers_str.split("\n")
-        else:  # remote
-            client = paramiko.SSHClient()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            resolved_ip = socket.gethostbyname(destination_config['hostname'])
-            client.connect(resolved_ip, port=destination_config['port'], username=destination_config['username'])
+            if destination_config["type"] == "local":
+                free_bytes = int(os.popen(free_1k_blocks_cmd).read().rstrip()) * 1000
+                in_flight_transfers_str = os.popen(in_flight_transfers_cmd).read().rstrip()
+                if len(in_flight_transfers_str) == 0:
+                    in_flight_transfers = []
+                else:
+                    in_flight_transfers = in_flight_transfers_str.split("\n")
+            else:  # remote
+                client = paramiko.SSHClient()
+                client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                resolved_ip = socket.gethostbyname(destination_config['hostname'])
 
-            _, free_1k_blocks_stdout, _ = client.exec_command(free_1k_blocks_cmd)
-            free_bytes = int(free_1k_blocks_stdout.read().decode("utf-8").rstrip()) * 1000
+                try:
+                    client.connect(resolved_ip, port=destination_config['port'], username=destination_config['username'])
 
-            _, in_flight_transfers_stdout, _ = client.exec_command(in_flight_transfers_cmd)
-            in_flight_transfers_str = in_flight_transfers_stdout.read().decode("utf-8").rstrip()
-            if len(in_flight_transfers_str) == 0:
-                in_flight_transfers = []
-            else:
-                in_flight_transfers = in_flight_transfers_str.split("\n")
+                    _, free_1k_blocks_stdout, _ = client.exec_command(free_1k_blocks_cmd)
+                    free_bytes = int(free_1k_blocks_stdout.read().decode("utf-8").rstrip()) * 1000
 
-            client.close()
+                    _, in_flight_transfers_stdout, _ = client.exec_command(in_flight_transfers_cmd)
+                    in_flight_transfers_str = in_flight_transfers_stdout.read().decode("utf-8").rstrip()
+                    if len(in_flight_transfers_str) == 0:
+                        in_flight_transfers = []
+                    else:
+                        in_flight_transfers = in_flight_transfers_str.split("\n")
+                except Exception as e:
+                    raise e
+                finally:
+                    client.close()
 
-        return {
-            "config": destination_config,
-            "free_bytes": free_bytes,
-            "in_flight_transfers": in_flight_transfers
-        }
+            return {
+                "config": destination_config,
+                "free_bytes": free_bytes,
+                "in_flight_transfers": in_flight_transfers
+            }
+        except:
+            logging.exception("exception trying to load destination info")
+            return None
 
     # parses the metadata out of a plot file name - works for complete
     # plots as well as temporary rsync plots (starting with .)
