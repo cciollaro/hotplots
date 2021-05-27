@@ -23,5 +23,10 @@ if __name__ == '__main__':
     hotplots = Hotplots(config)
 
     while True:
-        hotplots.run()
+        try:
+            hotplots.run()
+        except:
+            logging.exception("error while running hotplots")
+        # TODO configurable
+        logging.info("sleeping 60s")
         time.sleep(60)
