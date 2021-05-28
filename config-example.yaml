@@ -1,9 +1,20 @@
-# Directories which you will watch on your local machine
+logging:
+  level: INFO
+
+  stdout:
+    enabled: true
+  file:
+    enabled: true
+    path: /Users/cciollaro/hotplots.log
+
+sleep: 59
+
+max_concurrent_transfers: 2
+
 source_directories:
   - /mnt/hdd1000/chia-plots/
 
 destinations:
-  # Remote destinations
   remote:
     - hostname: thinkcentre.local
       username: cc
@@ -22,6 +33,5 @@ destinations:
         - /media/cc/elements-12tb-1/chia-plots/
         - /media/cc/elements-12tb-2/chia-plots/
         - /media/cc/elements-12tb-4/chia-plots/
-# Directories on your local machine
-#  local:
-#    - /Users/cciollaro/PycharmProjects/hotplots/testdir_destination/
+  local:
+    - /Users/cciollaro/PycharmProjects/hotplots/testdir_destination/
