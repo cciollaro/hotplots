@@ -78,8 +78,6 @@ class Hotplots:
 
     @staticmethod
     def get_destination_info(destination_config):
-        # TODO handle and log case where destination info cannot be loaded
-
         try:
             logging.info("Loading destination info for %s" % destination_config)
             free_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $4}'" % (destination_config["dir"])
@@ -119,7 +117,7 @@ class Hotplots:
                 "free_bytes": free_bytes,
                 "in_flight_transfers": in_flight_transfers
             }
-        except:
+        except Exception:
             logging.exception("exception trying to load destination info")
             return None
 

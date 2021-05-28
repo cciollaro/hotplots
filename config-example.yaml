@@ -11,6 +11,37 @@ sleep: 59
 
 max_concurrent_transfers: 2
 
+strategy:
+  # The strategy to use when there's multiple eligible destinations. An eligible destination is one
+  # which has enough space and is not currently being transferred to.
+  destination_selection:
+    # random will randomly choose an eligible destination
+    strategy: random
+    # least_available will choose the eligible destination with the least available free space (prioritize filling up disks)
+    # strategy: least_available
+    # most_available will choose the eligible destination with the most available free space (avoid filling up disks)
+    # strategy: most_available
+
+  # When all destinations are full we're either going to have to exit, or start replacing plots.
+  # Plot replacement can either replace plots before a particular timestamp (fast) or
+  # search for plots with a particular key.
+  plot_replacement:
+    enabled: true
+    query:
+      type: "time"
+      before: "2021-06-01"
+
+    # query:
+    #   type: pool_key
+    #   pool_key: beefdad650490d6dca0ab211efabeb650b95f4e7606dc1df901ed8fdb877efba3a410f4ff37952493de1cc8adc8180c52
+
+    # query:
+    #   type: farmer_key
+    #   farmer_key: beefdad650490d6dca0ab211efabeb650b95f4e7606dc1df901ed8fdb877efba3a410f4ff37952493de1cc8adc8180c52
+
+
+
+
 source_directories:
   - /mnt/hdd1000/chia-plots/
 

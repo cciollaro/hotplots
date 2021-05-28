@@ -1,5 +1,4 @@
 # Hotplots - Chia Plots Archiving Program
-TODO: update to refrence hotplots
 ## Installation
 
 _For updating from previous version, see section below._
