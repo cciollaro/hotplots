@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Function that checks if a package is installed locally
 function package_installed() {
   return dpkg -l "$1" &> /dev/null
