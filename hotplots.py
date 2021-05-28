@@ -4,23 +4,19 @@ import paramiko
 import socket
 import logging
 import subprocess
+import psutil
+import contextlib
 
 
 class Hotplots:
     def __init__(self, config):
-
         self.config = config
 
-        logging.info("Watching source dirs: ")
-        logging.info(self.config.sources())
-
-        logging.info("Considering destinations: ")
-        logging.info(self.config.destinations())
-
     def run(self):
-        # load up the status of all of our destinations
-        # TODO handle and log case where destination info cannot be loaded
-        destinations = [self.get_destination_info(destination_config) for destination_config in self.config.destinations() if destination_config is not None]
+        destinations_with_nones = [self.get_destination_info(destination_config) for destination_config in self.config.destinations()]
+        destinations = [d for d in destinations_with_nones if d is not None]
+
+        logging.info("Considering destinations: %s" % destinations)
 
         for source_dir in self.config.sources():
             for source_plot_absolute_reference in glob.glob(source_dir + "*.plot"):
@@ -39,7 +35,30 @@ class Hotplots:
                     )
                     self.move_plot(source_plot, chosen_destination)
 
-    def move_plot(self, source_plot, destination):
+    def is_already_being_transferred(self, destinations, source_plot_file):
+        for destination in destinations:
+            for in_flight_transfer in destination["in_flight_transfers"]:
+                in_flight_metadata = self.parse_plot_filename_metadata(in_flight_transfer)
+                if source_plot_file["metadata"]["plot_id"] == in_flight_metadata["plot_id"]:
+                    return True
+        return False
+
+    @staticmethod
+    def choose_destination(destinations, source_plot_file):
+        destination_filter_fn = lambda d: d["free_bytes"] > source_plot_file["size"] and len(d["in_flight_transfers"]) == 0
+        eligible_destinations = list(filter(destination_filter_fn, destinations))
+
+        if len(eligible_destinations) == 0:
+            # TODO: handle no eligible destinations
+            pass
+        else:
+            # pick best remaining destination. could be done randomly as well.
+            eligible_destinations.sort(key=lambda d: d["free_bytes"], reverse=True)
+            return eligible_destinations[0]
+
+
+    @staticmethod
+    def move_plot(source_plot, destination):
         if destination["config"]["type"] == "local":
             move_plot_cmd = "rsync -av --remove-source-files %s %s" % (
                 source_plot["absolute_reference"], destination["config"]["dir"]
@@ -56,29 +75,13 @@ class Hotplots:
         logging.info("Running move plot command: %s" % move_plot_cmd)
         subprocess.Popen(move_plot_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, start_new_session=True)
 
-    def choose_destination(self, destinations, source_plot_file):
-        destination_filter_fn = lambda d: d["free_bytes"] > source_plot_file["size"] and len(d["in_flight_transfers"]) == 0
-        eligible_destinations = list(filter(destination_filter_fn, destinations))
 
-        if len(eligible_destinations) == 0:
-            # TODO: handle no eligible destinations
-            pass
-        else:
-            # pick best remaining destination. could be done randomly as well.
-            eligible_destinations.sort(key=lambda d: d["free_bytes"], reverse=True)
-            return eligible_destinations[0]
+    @staticmethod
+    def get_destination_info(destination_config):
+        # TODO handle and log case where destination info cannot be loaded
 
-    def is_already_being_transferred(self, destinations, source_plot_file):
-        for destination in destinations:
-            for in_flight_transfer in destination["in_flight_transfers"]:
-                in_flight_metadata = self.parse_plot_filename_metadata(in_flight_transfer)
-                if source_plot_file["metadata"]["plot_id"] == in_flight_metadata["plot_id"]:
-                    return True
-        return False
-
-    def get_destination_info(self, destination_config):
         try:
-            logging.debug("Loading destination info for %s" % destination_config)
+            logging.info("Loading destination info for %s" % destination_config)
             free_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $4}'" % (destination_config["dir"])
             in_flight_transfers_cmd = "find %s -name '.*.plot.*'" % (destination_config["dir"])
 
@@ -122,7 +125,8 @@ class Hotplots:
 
     # parses the metadata out of a plot file name - works for complete
     # plots as well as temporary rsync plots (starting with .)
-    def parse_plot_filename_metadata(self, plot_filename):
+    @staticmethod
+    def parse_plot_filename_metadata(plot_filename):
         basename = os.path.basename(plot_filename)
         if basename.startswith("."):
             # .plot-k32-2021-05-24-12-36-990e8afe5494e4fd91aef0bcd5548f529895400011528e56094c1c3c96edcd27.plot.y29pgW
@@ -143,3 +147,18 @@ class Hotplots:
             "minute": minute,
             "plot_id": plot_id
         }
+
+
+    @staticmethod
+    def count_running_rsyncs():
+        jobs = 0
+        for proc in psutil.process_iter(['pid', 'name']):
+            with contextlib.suppress(psutil.NoSuchProcess):
+                if proc.name() == 'rsync':
+                    jobs += 1
+                    # TODO - should we be more specific about which rsyncs count
+                    # args = proc.cmdline()
+                    # for arg in args:
+                    #     if arg.startswith(dest):
+                    #         jobs.append(proc.pid)
+        return jobs
