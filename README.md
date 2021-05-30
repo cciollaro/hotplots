@@ -1,4 +1,4 @@
-# Hotplots - Chia Plots Archiving Program
+# WIP - Hotplots - Chia Plots Archiving Program
 TODO: put links to sections here
 
 ## Overview
