@@ -1,68 +1,135 @@
 logging:
   level: INFO
-
   stdout:
     enabled: true
   file:
     enabled: true
     path: /Users/cciollaro/hotplots.log
 
-sleep: 59
+source:
+  # How often to check for new available actions (new plots or transfers completed)
+  check_source_drives_sleep_seconds: 60
 
-max_concurrent_transfers: 2
+  # least_available_space: take plot from the source drive with the least available space (after active transfers)
+  # random: select the next plot randomly
+  selection_strategy: least_available_space
 
-strategy:
-  # The strategy to use when there's multiple eligible destinations. An eligible destination is one
-  # which has enough space and is not currently being transferred to.
-  destination_selection:
-    # random will randomly choose an eligible destination
-    strategy: random
-    # least_available will choose the eligible destination with the least available free space (prioritize filling up disks)
-    # strategy: least_available
-    # most_available will choose the eligible destination with the most available free space (avoid filling up disks)
-    # strategy: most_available
+  drives:
+  - path: /Users/cciollaro/hotplots-dir
+    drive_max_concurrent_outbound_transfers: 1
 
-  # When all destinations are full we're either going to have to exit, or start replacing plots.
-  # Plot replacement can either replace plots before a particular timestamp (fast) or
-  # search for plots with a particular key.
-  plot_replacement:
-    enabled: true
-    query:
-      type: "time"
-      before: "2021-06-01"
+targets:
+  # Always prefer a local transfer instead of a remote one
+  prefer_local_target: true
+  global_max_concurrent_outbound_transfers: 4
 
-    # query:
-    #   type: pool_key
-    #   pool_key: beefdad650490d6dca0ab211efabeb650b95f4e7606dc1df901ed8fdb877efba3a410f4ff37952493de1cc8adc8180c52
-
-    # query:
-    #   type: farmer_key
-    #   farmer_key: beefdad650490d6dca0ab211efabeb650b95f4e7606dc1df901ed8fdb877efba3a410f4ff37952493de1cc8adc8180c52
-
-
-
-
-source_directories:
-  - /mnt/hdd1000/chia-plots/
-
-destinations:
-  remote:
-    - hostname: thinkcentre.local
-      username: cc
-      port: 22
-      directories:
-        - /media/cc/easystore-12tb-1/chia-plots/
-        - /media/cc/easystore-12tb-2/chia-plots/
-        - /media/cc/easystore-14tb-1/chia-plots/
-        - /media/cc/easystore-14tb-2/chia-plots/
-        - /media/cc/easystore-14tb-3/chia-plots/
-        - /media/cc/easystore-16tb-1/chia-plots/
-        - /media/cc/easystore-16tb-2/chia-plots/
-        - /media/cc/easystore-16tb-3/chia-plots/
-        - /media/cc/easystore-16tb-4/chia-plots/
-        - /media/cc/easystore-16tb-5/chia-plots/
-        - /media/cc/elements-12tb-1/chia-plots/
-        - /media/cc/elements-12tb-2/chia-plots/
-        - /media/cc/elements-12tb-4/chia-plots/
   local:
-    - /Users/cciollaro/PycharmProjects/hotplots/testdir_destination/
+    host_max_concurrent_inbound_transfers: 4
+    drives:
+      - path: /Users/cciollaro/hotplots-dir
+        drive_max_concurrent_inbound_transfers: 1
+        plot_replacement:
+          enabled: true
+          type: time-before
+          value: "2021-06-01"
+
+  remote:
+    max_concurrent_remote_transfers: 2
+
+    hosts:
+      - hostname: thinkcentre.local
+        username: cc
+        port: 22
+        host_max_concurrent_inbound_transfers: 4
+        drives:
+          - path: /media/cc/easystore-12tb-1/chia-plots/
+            drive_max_concurrent_inbound_transfers: 1
+            plot_replacement:
+              enabled: true
+              # possible values: timestamp-before, pool-key, farmer-key, k-size
+              type: timestamp-before
+              value: "2021-06-01"
+
+          - path: /media/cc/easystore-12tb-2/chia-plots/
+            drive_max_concurrent_inbound_transfers: 1
+            plot_replacement:
+              enabled: true
+              type: time-before
+              value: "2021-06-01"
+
+          - path: /media/cc/easystore-14tb-1/chia-plots/
+            drive_max_concurrent_inbound_transfers: 1
+            plot_replacement:
+              enabled: true
+              type: time-before
+              value: "2021-06-01"
+
+          - path: /media/cc/easystore-14tb-2/chia-plots/
+            drive_max_concurrent_inbound_transfers: 1
+            plot_replacement:
+              enabled: true
+              type: time-before
+              value: "2021-06-01"
+
+          - path: /media/cc/easystore-14tb-3/chia-plots/
+            drive_max_concurrent_inbound_transfers: 1
+            plot_replacement:
+              enabled: true
+              type: time-before
+              value: "2021-06-01"
+
+          - path: /media/cc/easystore-16tb-1/chia-plots/
+            drive_max_concurrent_inbound_transfers: 1
+            plot_replacement:
+              enabled: true
+              type: time-before
+              value: "2021-06-01"
+
+          - path: /media/cc/easystore-16tb-2/chia-plots/
+            drive_max_concurrent_inbound_transfers: 1
+            plot_replacement:
+              enabled: true
+              type: time-before
+              value: "2021-06-01"
+
+          - path: /media/cc/easystore-16tb-3/chia-plots/
+            drive_max_concurrent_inbound_transfers: 1
+            plot_replacement:
+              enabled: true
+              type: time-before
+              value: "2021-06-01"
+
+          - path: /media/cc/easystore-16tb-4/chia-plots/
+            drive_max_concurrent_inbound_transfers: 1
+            plot_replacement:
+              enabled: true
+              type: time-before
+              value: "2021-06-01"
+
+          - path: /media/cc/easystore-16tb-5/chia-plots/
+            drive_max_concurrent_inbound_transfers: 1
+            plot_replacement:
+              enabled: true
+              type: time-before
+              value: "2021-06-01"
+
+          - path: /media/cc/elements-12tb-1/chia-plots/
+            drive_max_concurrent_inbound_transfers: 1
+            plot_replacement:
+              enabled: true
+              type: time-before
+              value: "2021-06-01"
+
+          - path: /media/cc/elements-12tb-2/chia-plots/
+            drive_max_concurrent_inbound_transfers: 1
+            plot_replacement:
+              enabled: true
+              type: time-before
+              value: "2021-06-01"
+
+          - path: /media/cc/elements-12tb-4/chia-plots/
+            drive_max_concurrent_inbound_transfers: 1
+            plot_replacement:
+              enabled: true
+              type: time-before
+              value: "2021-06-01"

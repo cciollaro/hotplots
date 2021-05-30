@@ -1,4 +1,16 @@
 # Hotplots - Chia Plots Archiving Program
+TODO: put links to sections here
+
+## Overview
+TODO: image showing local, remotes, drives.
+
+Hotplots moves your plots from a local `source` disk to an eligible `target` disk.
+`targets` are either local (attached to the same machine that hotplots is running on) or remote (accesible through ssh from the machine hotplots is running on).
+You can have many source disks, and each target (local, and all your remotes) can have many disks.
+
+Hotplots waits for completed plot files to appear in a source directory, and then it moves the plot to 
+an eligible target disk. 
+
 ## Installation
 
 _For updating from previous version, see section below._
