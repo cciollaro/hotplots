@@ -6,7 +6,7 @@ from glob import glob
 import paramiko
 
 from hotplots.models import PlotNameMetadata, InFlightTransfer, SourceDriveInfo, RemoteHostInfo
-from hotplots.models import SourceConfig, SourcePlot, SourceInfo, LocalTargetConfig, LocalTargetInfo, RemoteTargetsConfig, \
+from hotplots.models import SourceConfig, SourcePlot, SourceInfo, LocalHostConfig, LocalTargetsInfo, RemoteTargetsConfig, \
     RemoteTargetsInfo, TargetDriveInfo
 
 
@@ -36,8 +36,12 @@ class FSAccess:
             free_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $4}'" % source_drive_config.path
             free_bytes = int(os.popen(free_1k_blocks_cmd).read().rstrip()) * 1000
 
+            total_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $2}'" % source_drive_config.path
+            total_bytes = int(os.popen(total_1k_blocks_cmd).read().rstrip()) * 1000
+
             source_drive_info = SourceDriveInfo(
                 source_drive_config,
+                total_bytes,
                 free_bytes,
                 source_plots
             )
@@ -50,15 +54,18 @@ class FSAccess:
 
 
     @staticmethod
-    def get_local_target_info(local_target_config: LocalTargetConfig) -> LocalTargetInfo:
+    def get_local_target_info(local_target_config: LocalHostConfig) -> LocalTargetsInfo:
         logging.info("getting local target info for %s" % local_target_config)
 
         target_disk_infos = []
         for target_drive_config in local_target_config.drives:
             free_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $4}'" % target_drive_config.path
+            total_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $2}'" % target_drive_config.path
             in_flight_transfers_cmd = "find %s -name '.*.plot.*'" % target_drive_config.path
 
             free_bytes = int(os.popen(free_1k_blocks_cmd).read().rstrip()) * 1000
+            total_bytes = int(os.popen(total_1k_blocks_cmd).read().rstrip()) * 1000
+
             in_flight_transfers_str = os.popen(in_flight_transfers_cmd).read().rstrip()
             if len(in_flight_transfers_str) == 0:
                 in_flight_transfer_filenames = []
@@ -70,18 +77,23 @@ class FSAccess:
                 in_flight_transfer_absolute_reference = os.path.join(target_drive_config.path, in_flight_transfer_filename)
                 file_size_cmd = "stat -c%s " + in_flight_transfer_absolute_reference
                 current_file_size = int(os.popen(file_size_cmd).read().rstrip())
-                in_flight_transfer = InFlightTransfer(in_flight_transfer_filename, current_file_size)
+                in_flight_transfer = InFlightTransfer(
+                    in_flight_transfer_filename,
+                    current_file_size,
+                    PlotNameMetadata.parse_from_filename(in_flight_transfer_filename)
+                )
                 in_flight_transfers.append(in_flight_transfer)
 
             target_disk_info = TargetDriveInfo(
                 target_drive_config,
+                total_bytes,
                 free_bytes,
                 in_flight_transfers
             )
 
             target_disk_infos.append(target_disk_info)
 
-        local_target_info = LocalTargetInfo(
+        local_target_info = LocalTargetsInfo(
             local_target_config,
             target_disk_infos
         )
@@ -91,7 +103,7 @@ class FSAccess:
 
 
     @staticmethod
-    def get_remote_target_info(remote_targets_config: RemoteTargetsConfig) -> RemoteTargetsInfo:
+    def get_remote_targets_info(remote_targets_config: RemoteTargetsConfig) -> RemoteTargetsInfo:
 
         remote_host_infos = []
         for remote_host_config in remote_targets_config.hosts:
@@ -100,15 +112,25 @@ class FSAccess:
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             resolved_ip = socket.gethostbyname(remote_host_config.hostname)
-            client.connect(resolved_ip, port=remote_host_config.port, username=remote_host_config.username)
+            client.connect(
+                resolved_ip,
+                port=remote_host_config.port,
+                username=remote_host_config.username,
+                password=remote_host_config.password
+            )
 
             target_drive_infos = []
             for target_drive_config in remote_host_config.drives:
                 free_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $4}'" % target_drive_config.path
+                total_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $2}'" % target_drive_config.path
                 in_flight_transfers_cmd = "find %s -name '.*.plot.*'" % target_drive_config.path
 
                 _, free_1k_blocks_stdout, _ = client.exec_command(free_1k_blocks_cmd)
                 free_bytes = int(free_1k_blocks_stdout.read().decode("utf-8").rstrip()) * 1000
+
+                _, total_1k_blocks_stdout, _ = client.exec_command(total_1k_blocks_cmd)
+                total_bytes = int(total_1k_blocks_stdout.read().decode("utf-8").rstrip()) * 1000
+
 
                 _, in_flight_transfers_stdout, _ = client.exec_command(in_flight_transfers_cmd)
                 in_flight_transfers_str = in_flight_transfers_stdout.read().decode("utf-8").rstrip()
@@ -123,11 +145,16 @@ class FSAccess:
                     file_size_cmd = "stat -c%s " + in_flight_transfer_absolute_reference
                     _, current_file_size_stdout, _ = client.exec_command(file_size_cmd)
                     current_file_size = int(current_file_size_stdout.read().decode("utf-8").rstrip())
-                    in_flight_transfer = InFlightTransfer(in_flight_transfer_filename, current_file_size)
+                    in_flight_transfer = InFlightTransfer(
+                        in_flight_transfer_filename,
+                        current_file_size,
+                        PlotNameMetadata.parse_from_filename(in_flight_transfer_filename)
+                    )
                     in_flight_transfers.append(in_flight_transfer)
 
                 target_drive_info = TargetDriveInfo(
                     target_drive_config,
+                    total_bytes,
                     free_bytes,
                     in_flight_transfers
                 )
@@ -146,3 +173,7 @@ class FSAccess:
             remote_targets_config,
             remote_host_infos
         )
+
+#TODO: for plot replacemnet we're going to want a lot of safeguards in check.
+# e.g. check that the number of plots we're going to delete is sane, check that files exist and are of type file,
+# etc

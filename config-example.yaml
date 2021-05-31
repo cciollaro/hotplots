@@ -10,40 +10,67 @@ source:
   # How often to check for new available actions (new plots or transfers completed)
   check_source_drives_sleep_seconds: 60
 
-  # least_available_space: take plot from the source drive with the least available space (after active transfers)
+  # If you have multiple source drives, the method for prioritizing which plot to start transferring will be
+  # as follows:
+  # plot_with_oldest_timestamp: selects the plot file with the oldest timestamp across all source drives
+  # drive_with_least_space_remaining: take plot from the source drive with the least available space (after active transfers)
+  # drive_with_lowest_percent_space_remaining: take plot from the source drive with the least remaining percent of space (after active transfers)
+  # config_order: prefer to take plots from the drive as they're listed in config order
   # random: select the next plot randomly
-  selection_strategy: least_available_space
+  selection_strategy: plot_with_oldest_timestamp
 
   drives:
   - path: /Users/cciollaro/hotplots-dir
-    drive_max_concurrent_outbound_transfers: 1
+    max_concurrent_outbound_transfers: 2
 
 targets:
-  # Always prefer a local transfer instead of a remote one
+  # Prefer a local transfer instead of a remote one. Writing to local target drives should have less IO overhead.
   prefer_local_target: true
-  global_max_concurrent_outbound_transfers: 4
 
+  # The drive to write to can be prioritized in the following ways:
+  # config_order: prefer eligible drives in the order they appear in this config file
+  # drive_with_least_space_remaining: put the plot on the drive with least remaining space (after active transfers)
+  # drive_with_lowest_percent_space_remaining: put the plot in the dirve with the least remaining percent (after active transfers)
+  # drive_with_most_space_remaining: take plot from
+  # drive_with_highest_percent_space_remaining:
+  # random:
+  selection_strategy: drive_with_most_space_remaining
+
+
+  # Local drives are SATA or USB drives attached directly to your plotter.
+  # Transfers are generally going to be faster and less bottle-necked than remote transfers
+  # since they don't go over the network.
   local:
-    host_max_concurrent_inbound_transfers: 4
     drives:
+      # The path doesn't need to be the mount point of the drive, but it is assumed to be the only path on the drive.
       - path: /Users/cciollaro/hotplots-dir
-        drive_max_concurrent_inbound_transfers: 1
+        # For most drives, a single plot transfer is probably going to saturate the write capacity (be it disk speed,
+        # SATA speed, or USB speed). Therefore, the default value of 1 is probably what you want.
+        # Note: if you share this drive as a target with other plotters (i.e. it's registered as a remote drive
+        # for another instance of hotplots) then your limit is shared with the other plotters.
+        max_concurrent_inbound_transfers: 1
         plot_replacement:
           enabled: true
           type: time-before
           value: "2021-06-01"
 
   remote:
-    max_concurrent_remote_transfers: 2
+    # How many outbound remote transfers this device is allowed to make. If a single outbound transfer already
+    # saturates your network bandwidth then there should be no reason to raise this.
+    max_concurrent_outbound_transfers: 1
 
     hosts:
       - hostname: thinkcentre.local
         username: cc
+        password: ""
         port: 22
-        host_max_concurrent_inbound_transfers: 4
+        # Note: This limit is globally, from all plotting machines.
+        max_concurrent_inbound_transfers: 4
+
         drives:
           - path: /media/cc/easystore-12tb-1/chia-plots/
-            drive_max_concurrent_inbound_transfers: 1
+            # Note: This limit is globally, from all plotting machines that are running `hotplots`.
+            max_concurrent_inbound_transfers: 1
             plot_replacement:
               enabled: true
               # possible values: timestamp-before, pool-key, farmer-key, k-size
@@ -51,84 +78,84 @@ targets:
               value: "2021-06-01"
 
           - path: /media/cc/easystore-12tb-2/chia-plots/
-            drive_max_concurrent_inbound_transfers: 1
+            max_concurrent_inbound_transfers: 1
             plot_replacement:
               enabled: true
               type: time-before
               value: "2021-06-01"
 
           - path: /media/cc/easystore-14tb-1/chia-plots/
-            drive_max_concurrent_inbound_transfers: 1
+            max_concurrent_inbound_transfers: 1
             plot_replacement:
               enabled: true
               type: time-before
               value: "2021-06-01"
 
           - path: /media/cc/easystore-14tb-2/chia-plots/
-            drive_max_concurrent_inbound_transfers: 1
+            max_concurrent_inbound_transfers: 1
             plot_replacement:
               enabled: true
               type: time-before
               value: "2021-06-01"
 
           - path: /media/cc/easystore-14tb-3/chia-plots/
-            drive_max_concurrent_inbound_transfers: 1
+            max_concurrent_inbound_transfers: 1
             plot_replacement:
               enabled: true
               type: time-before
               value: "2021-06-01"
 
           - path: /media/cc/easystore-16tb-1/chia-plots/
-            drive_max_concurrent_inbound_transfers: 1
+            max_concurrent_inbound_transfers: 1
             plot_replacement:
               enabled: true
               type: time-before
               value: "2021-06-01"
 
           - path: /media/cc/easystore-16tb-2/chia-plots/
-            drive_max_concurrent_inbound_transfers: 1
+            max_concurrent_inbound_transfers: 1
             plot_replacement:
               enabled: true
               type: time-before
               value: "2021-06-01"
 
           - path: /media/cc/easystore-16tb-3/chia-plots/
-            drive_max_concurrent_inbound_transfers: 1
+            max_concurrent_inbound_transfers: 1
             plot_replacement:
               enabled: true
               type: time-before
               value: "2021-06-01"
 
           - path: /media/cc/easystore-16tb-4/chia-plots/
-            drive_max_concurrent_inbound_transfers: 1
+            max_concurrent_inbound_transfers: 1
             plot_replacement:
               enabled: true
               type: time-before
               value: "2021-06-01"
 
           - path: /media/cc/easystore-16tb-5/chia-plots/
-            drive_max_concurrent_inbound_transfers: 1
+            max_concurrent_inbound_transfers: 1
             plot_replacement:
               enabled: true
               type: time-before
               value: "2021-06-01"
 
           - path: /media/cc/elements-12tb-1/chia-plots/
-            drive_max_concurrent_inbound_transfers: 1
+            max_concurrent_inbound_transfers: 1
             plot_replacement:
               enabled: true
               type: time-before
               value: "2021-06-01"
 
           - path: /media/cc/elements-12tb-2/chia-plots/
-            drive_max_concurrent_inbound_transfers: 1
+            max_concurrent_inbound_transfers: 1
             plot_replacement:
               enabled: true
               type: time-before
               value: "2021-06-01"
 
           - path: /media/cc/elements-12tb-4/chia-plots/
-            drive_max_concurrent_inbound_transfers: 1
+            max_concurrent_inbound_transfers: 1
             plot_replacement:
               enabled: true
               type: time-before

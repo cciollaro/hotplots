@@ -9,7 +9,7 @@ import contextlib
 from hotplots.fs_access import FSAccess
 from hotplots.hotplots_config import HotplotsConfig
 from hotplots.hotplots_engine import HotplotsEngine
-from hotplots.models import SourceInfo
+from hotplots.models import SourceInfo, LocalTargetsInfo, RemoteTargetsInfo
 
 
 class Hotplots:
@@ -36,9 +36,10 @@ class Hotplots:
         # Next, let's fetch disk space and in-progress transfer information from all targets
         # These are fairly light operations, and provides all the info we need to know if we can
         # perform a simple transfer.
-        local_targets = FSAccess.get_local_target_info(self.config.targets.local)
-        remote_targets = FSAccess.get_remote_target_info(self.config.targets.remote)
+        local_target_info: LocalTargetsInfo = FSAccess.get_local_target_info(self.config.targets.local)
+        remote_targets_info: RemoteTargetsInfo = FSAccess.get_remote_targets_info(self.config.targets.remote)
 
+        actions = HotplotsEngine.get_actions(self.config, source_info, local_target_info, remote_targets_info)
 
         # possible results:
         # - all_possible_transfers_are_in_progress

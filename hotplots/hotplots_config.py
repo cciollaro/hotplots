@@ -25,7 +25,7 @@ class LoggingConfig:
 @dataclass(frozen=True)
 class SourceDriveConfig:
     path: str
-    drive_max_concurrent_outbound_transfers: int = 1
+    max_concurrent_outbound_transfers: int = 1
 
 
 @dataclass(frozen=True)
@@ -45,13 +45,12 @@ class PlotReplacementConfig:
 @dataclass(frozen=True)
 class TargetDriveConfig:
     path: str
-    drive_max_concurrent_inbound_transfers: int
+    max_concurrent_inbound_transfers: int
     plot_replacement: PlotReplacementConfig = PlotReplacementConfig()
 
 
 @dataclass(frozen=True)
-class LocalTargetConfig:
-    host_max_concurrent_inbound_transfers: int
+class LocalHostConfig:
     drives: List[TargetDriveConfig]
 
 
@@ -60,20 +59,21 @@ class RemoteHostConfig:
     hostname: str
     username: str
     port: int
-    host_max_concurrent_inbound_transfers: int
+    max_concurrent_inbound_transfers: int
     drives: List[TargetDriveConfig]
+    password: str = ""
 
 
 @dataclass(frozen=True)
 class RemoteTargetsConfig:
-    max_concurrent_remote_transfers: int
+    max_concurrent_outbound_transfers: int
     hosts: List[RemoteHostConfig]
 
 
 @dataclass(frozen=True)
 class TargetsConfig:
-    global_max_concurrent_outbound_transfers: int
-    local: LocalTargetConfig
+    selection_strategy: str
+    local: LocalHostConfig
     remote: RemoteTargetsConfig
     prefer_local_target: bool = True
 

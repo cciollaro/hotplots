@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import os
-from typing import List
-from hotplots.hotplots_config import SourceConfig, TargetDriveConfig, RemoteTargetsConfig, LocalTargetConfig, \
+from typing import List, Union
+from hotplots.hotplots_config import SourceConfig, TargetDriveConfig, RemoteTargetsConfig, LocalHostConfig, \
     SourceDriveConfig, RemoteHostConfig
 
 
@@ -48,19 +48,19 @@ class PlotNameMetadata:
 class InFlightTransfer:
     filename: str
     current_file_size: int
+    plot_name_metadata: PlotNameMetadata
 
 
 @dataclass
 class TargetDriveInfo:
-    target_disk_config: TargetDriveConfig
+    target_drive_config: TargetDriveConfig
+    total_bytes: int
     free_bytes: int
     in_flight_transfers: List[InFlightTransfer]
 
-
-
 @dataclass
-class LocalTargetInfo:
-    local_target_config: LocalTargetConfig
+class LocalTargetsInfo:
+    local_host_config: LocalHostConfig
     target_drive_infos: list[TargetDriveInfo]
 
 @dataclass
@@ -73,6 +73,7 @@ class SourcePlot:
 @dataclass
 class SourceDriveInfo:
     source_drive_config: SourceDriveConfig
+    total_bytes: int
     free_bytes: int
     source_plots: List[SourcePlot]
 
@@ -87,8 +88,20 @@ class RemoteHostInfo:
     remote_host_config: RemoteHostConfig
     target_drive_infos: list[TargetDriveInfo]
 
+
 @dataclass
 class RemoteTargetsInfo:
     remote_target_config: RemoteTargetsConfig
     remote_host_infos: list[RemoteHostInfo]
 
+
+@dataclass
+class HotPlot:
+    source_drive_info: SourceDriveInfo
+    source_plot: SourcePlot
+
+
+@dataclass
+class HotPlotTargetDrive:
+    host_config: Union[LocalHostConfig, RemoteHostConfig]
+    target_drive_info: TargetDriveInfo
