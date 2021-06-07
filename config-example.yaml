@@ -24,18 +24,21 @@ source:
     max_concurrent_outbound_transfers: 2
 
 targets:
-  # Prefer a local transfer instead of a remote one. Writing to local target drives should have less IO overhead.
-  prefer_local_target: true
+  # Possible values are:
+  # local - prefer transferring to an eligible local drive, even over a more optimal eligible remote drive
+  # remote - prefer transferring to an eligible remote drive, even over a more optimal eligible local drive
+  # unbiased - prefer the optimal eligible drive, regardless of local or remote.
+  # Default: local. Generally will have less IO overhead so is a sane default.
+  target_host_preference: local
 
   # The drive to write to can be prioritized in the following ways:
-  # config_order: prefer eligible drives in the order they appear in this config file
+  # config_order: prefer eligible drives in the order they appear in this config file. local block will take priority.
   # drive_with_least_space_remaining: put the plot on the drive with least remaining space (after active transfers)
   # drive_with_lowest_percent_space_remaining: put the plot in the dirve with the least remaining percent (after active transfers)
   # drive_with_most_space_remaining: take plot from
   # drive_with_highest_percent_space_remaining:
-  # random:
+  # random: select randomly
   selection_strategy: drive_with_most_space_remaining
-
 
   # Local drives are SATA or USB drives attached directly to your plotter.
   # Transfers are generally going to be faster and less bottle-necked than remote transfers

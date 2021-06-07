@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import os
-from typing import List, Union
+from typing import List, Union, Tuple
 from hotplots.hotplots_config import SourceConfig, TargetDriveConfig, RemoteTargetsConfig, LocalHostConfig, \
     SourceDriveConfig, RemoteHostConfig
 
@@ -95,6 +95,30 @@ class RemoteTargetsInfo:
     remote_host_infos: list[RemoteHostInfo]
 
 
+@dataclass(frozen=True)
+class TargetsInfo:
+    local_targets_info: LocalTargetsInfo
+    remote_targets_info: RemoteTargetsInfo
+
+    # TODO: calculate this just once on instantiation
+    def active_transfers_map(self) -> dict[str, tuple[Union[LocalHostConfig, RemoteHostConfig], TargetDriveConfig]]:
+        # plot_id -> (HostConfig, TargetDriveConfig) (if can also differentiate host)
+        active_transfers_map = {}
+        # TODO fix variable names here
+        for x in self.local_targets_info.target_drive_infos:
+            for y in x.in_flight_transfers:
+                active_transfers_map[y.plot_name_metadata.plot_id] = (self.local_targets_info.local_host_config, x.target_drive_config)
+
+        # TODO fix variable names here
+        for x in self.remote_targets_info.remote_host_infos:
+            for y in x.target_drive_infos:
+                for z in y.in_flight_transfers:
+                    active_transfers_map[z.plot_name_metadata.plot_id] = (x.remote_host_config, y.target_drive_config)
+
+        return active_transfers_map
+
+
+
 @dataclass
 class HotPlot:
     source_drive_info: SourceDriveInfo
@@ -105,3 +129,26 @@ class HotPlot:
 class HotPlotTargetDrive:
     host_config: Union[LocalHostConfig, RemoteHostConfig]
     target_drive_info: TargetDriveInfo
+
+    def is_local(self):
+        return isinstance(self.host_config, LocalHostConfig)
+
+@dataclass(frozen=True)
+class GetSourceTargetPairingsResult:
+    pairings: List[Tuple[HotPlot, HotPlotTargetDrive]]
+    unpaired_hot_plots_due_to_capping: List[HotPlot]
+    unpaired_hot_plots_due_to_no_space: List[HotPlot]
+
+
+@dataclass(frozen=True)
+class GetActionsTransfersResult:
+    transfers: List[Tuple[HotPlot, HotPlotTargetDrive]]
+
+@dataclass(frozen=True)
+class GetActionsNoActionResult:
+    pass
+
+@dataclass
+class GetActionsPlotReplacementResult:
+    hot_plots: List[HotPlot]
+

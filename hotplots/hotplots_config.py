@@ -53,6 +53,9 @@ class TargetDriveConfig:
 class LocalHostConfig:
     drives: List[TargetDriveConfig]
 
+    def is_local(self):
+        return True
+
 
 @dataclass(frozen=True)
 class RemoteHostConfig:
@@ -62,6 +65,9 @@ class RemoteHostConfig:
     max_concurrent_inbound_transfers: int
     drives: List[TargetDriveConfig]
     password: str = ""
+
+    def is_local(self):
+        return False
 
 
 @dataclass(frozen=True)
@@ -75,7 +81,7 @@ class TargetsConfig:
     selection_strategy: str
     local: LocalHostConfig
     remote: RemoteTargetsConfig
-    prefer_local_target: bool = True
+    target_host_preference: str = "local"
 
 
 @dataclass(frozen=True)

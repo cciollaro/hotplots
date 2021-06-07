@@ -174,6 +174,25 @@ class FSAccess:
             remote_host_infos
         )
 
+    # TODO copied from old version, fix me
+    @staticmethod
+    def move_plot(source_plot, destination):
+        if destination["config"]["type"] == "local":
+            move_plot_cmd = "rsync -av --remove-source-files %s %s" % (
+                source_plot["absolute_reference"], destination["config"]["dir"]
+            )
+        else:  # remote
+            resolved_ip = socket.gethostbyname(destination['config']['hostname'])
+            move_plot_cmd = "rsync -av --remove-source-files -e ssh %s %s@%s:%s" % (
+                source_plot["absolute_reference"],
+                destination["config"]["username"],
+                resolved_ip,
+                destination["config"]["dir"]
+            )
+
+        logging.info("Running move plot command: %s" % move_plot_cmd)
+        subprocess.Popen(move_plot_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, start_new_session=True)
+
 #TODO: for plot replacemnet we're going to want a lot of safeguards in check.
 # e.g. check that the number of plots we're going to delete is sane, check that files exist and are of type file,
 # etc
