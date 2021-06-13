@@ -1,7 +1,5 @@
 from dataclasses import dataclass
 from typing import List
-import desert
-import yaml
 
 
 @dataclass(frozen=True)
@@ -56,7 +54,6 @@ class LocalHostConfig:
     def is_local(self):
         return True
 
-
 @dataclass(frozen=True)
 class RemoteHostConfig:
     hostname: str
@@ -89,13 +86,4 @@ class HotplotsConfig:
     logging: LoggingConfig
     source: SourceConfig
     targets: TargetsConfig
-
-    @staticmethod
-    def load_config_file(filename) -> 'HotplotsConfig':
-        with open(filename, "r") as config_file:
-            config_file_contents = config_file.read()
-        schema = desert.schema(HotplotsConfig)
-        config_objects = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
-        return schema.load(config_objects)
-
 

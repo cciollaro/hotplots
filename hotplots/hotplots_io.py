@@ -3,20 +3,20 @@ import os
 import socket
 from glob import glob
 
+import desert
 import paramiko
+import yaml
 
-from hotplots.models import PlotNameMetadata, InFlightTransfer, SourceDriveInfo, RemoteHostInfo
-from hotplots.models import SourceConfig, SourcePlot, SourceInfo, LocalHostConfig, LocalTargetsInfo, RemoteTargetsConfig, \
-    RemoteTargetsInfo, TargetDriveInfo
+from hotplots.hotplots_config import HotplotsConfig
+from hotplots.models import PlotNameMetadata, InFlightTransfer, SourceDriveInfo, RemoteHostInfo, SourceConfig, \
+    SourcePlot, SourceInfo, LocalHostConfig, LocalTargetsInfo, RemoteTargetsConfig, RemoteTargetsInfo, TargetDriveInfo
 
 
-class FSAccess:
+class HotplotsIO:
     """
-    The goal here is to encapsulate all of the FS access, so things can more easily be tested and mocked.
+    The goal here is to encapsulate all IO access, so things can more easily be tested and mocked.
     """
-
-    @staticmethod
-    def get_source_info(source_config: SourceConfig) -> SourceInfo:
+    def get_source_info(self, source_config: SourceConfig) -> SourceInfo:
         logging.info("getting source info %s" % source_config)
         source_drive_infos = []
         for source_drive_config in source_config.drives:
@@ -25,9 +25,7 @@ class FSAccess:
             for source_plot_absolute_reference in glob(os.path.join(source_drive_config.path, "*.plot")):
                 source_plot = SourcePlot(
                     source_plot_absolute_reference,
-                    os.path.basename(source_plot_absolute_reference),
-                    os.path.getsize(source_plot_absolute_reference),
-                    PlotNameMetadata.parse_from_filename(source_plot_absolute_reference)
+                    os.path.getsize(source_plot_absolute_reference)
                 )
 
                 source_plots.append(source_plot)
@@ -52,9 +50,7 @@ class FSAccess:
             source_drive_infos
         )
 
-
-    @staticmethod
-    def get_local_target_info(local_target_config: LocalHostConfig) -> LocalTargetsInfo:
+    def get_local_target_info(self, local_target_config: LocalHostConfig) -> LocalTargetsInfo:
         logging.info("getting local target info for %s" % local_target_config)
 
         target_disk_infos = []
@@ -101,10 +97,7 @@ class FSAccess:
 
         return local_target_info
 
-
-    @staticmethod
-    def get_remote_targets_info(remote_targets_config: RemoteTargetsConfig) -> RemoteTargetsInfo:
-
+    def get_remote_targets_info(self, remote_targets_config: RemoteTargetsConfig) -> RemoteTargetsInfo:
         remote_host_infos = []
         for remote_host_config in remote_targets_config.hosts:
             logging.info("getting remote info for %s" % remote_host_config)
@@ -175,8 +168,7 @@ class FSAccess:
         )
 
     # TODO copied from old version, fix me
-    @staticmethod
-    def move_plot(source_plot, destination):
+    def move_plot(self, source_plot, destination):
         if destination["config"]["type"] == "local":
             move_plot_cmd = "rsync -av --remove-source-files %s %s" % (
                 source_plot["absolute_reference"], destination["config"]["dir"]
@@ -193,6 +185,11 @@ class FSAccess:
         logging.info("Running move plot command: %s" % move_plot_cmd)
         subprocess.Popen(move_plot_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, start_new_session=True)
 
-#TODO: for plot replacemnet we're going to want a lot of safeguards in check.
-# e.g. check that the number of plots we're going to delete is sane, check that files exist and are of type file,
-# etc
+    HOTPLOTS_CONFIG_SCHEMA = desert.schema(HotplotsConfig)
+
+    @staticmethod
+    def load_config_file(filename) -> HotplotsConfig:
+        with open(filename, "r") as config_file:
+            config_file_contents = config_file.read()
+        config_objects = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
+        return HotplotsIO.HOTPLOTS_CONFIG_SCHEMA.load(config_objects)

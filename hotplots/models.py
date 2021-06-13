@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import os
 from typing import List, Union, Tuple
 from hotplots.hotplots_config import SourceConfig, TargetDriveConfig, RemoteTargetsConfig, LocalHostConfig, \
-    SourceDriveConfig, RemoteHostConfig
+    SourceDriveConfig, RemoteHostConfig, TargetsConfig
 
 
 @dataclass
@@ -63,12 +63,17 @@ class LocalTargetsInfo:
     local_host_config: LocalHostConfig
     target_drive_infos: list[TargetDriveInfo]
 
-@dataclass
+
+@dataclass(frozen=True)
 class SourcePlot:
     absolute_reference: str
-    basename: str
     size: int
-    plot_name_metadata: PlotNameMetadata
+
+    def __post_init__(self):
+        object.__setattr__(self, 'plot_name_metadata_memoized', PlotNameMetadata.parse_from_filename(self.absolute_reference)
+
+    def plot_name_metadata(self):
+        return self.plot_name_metadata_memoized
 
 @dataclass
 class SourceDriveInfo:
@@ -97,6 +102,7 @@ class RemoteTargetsInfo:
 
 @dataclass(frozen=True)
 class TargetsInfo:
+    targets_config: TargetsConfig
     local_targets_info: LocalTargetsInfo
     remote_targets_info: RemoteTargetsInfo
 

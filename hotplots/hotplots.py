@@ -6,15 +6,17 @@ import logging
 import subprocess
 import psutil
 import contextlib
-from hotplots.fs_access import FSAccess
+
+from hotplots.fs_access import HotplotsIO
 from hotplots.hotplots_config import HotplotsConfig
 from hotplots.hotplots_engine import HotplotsEngine
 from hotplots.models import SourceInfo, LocalTargetsInfo, RemoteTargetsInfo, TargetsInfo
 
 
 class Hotplots:
-    def __init__(self, config: HotplotsConfig):
+    def __init__(self, config: HotplotsConfig, hotplots_io: HotplotsIO):
         self.config = config
+        self.hotplots_io = hotplots_io
 
         # cache of target_config -> plot absolute reference -> memo data to avoid unnecessary disk reads
         self.memo_cache = {}
@@ -22,10 +24,9 @@ class Hotplots:
         # don't have to check drives that are full
         self.full_target_drives_cache = {}
 
-    # NOTE: for k=32 plot size let's assume: 101.4 GiB (108.9 GB)
     def run(self):
         # First check all sources to see if there are any plots at all
-        source_info: SourceInfo = FSAccess.get_source_info(self.config.source)
+        source_info: SourceInfo = self.hotplots_io.get_source_info(self.config.source)
 
         # If no plot files, there's nothing to do
         if all([not s.source_plots for s in source_info.source_drive_infos]):
@@ -37,8 +38,9 @@ class Hotplots:
         # These are fairly light operations, and provides all the info we need to know if we can
         # perform a simple transfer.
         targets_info: TargetsInfo = TargetsInfo(
-            FSAccess.get_local_target_info(self.config.targets.local),
-            FSAccess.get_remote_targets_info(self.config.targets.remote)
+            self.config.targets,
+            HotplotsIO.get_local_target_info(self.config.targets.local),
+            HotplotsIO.get_remote_targets_info(self.config.targets.remote)
         )
 
         # possible results:

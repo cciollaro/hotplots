@@ -16,13 +16,6 @@ from hotplots.models import SourceInfo, LocalTargetsInfo, RemoteTargetsInfo, Sou
     TargetsInfo, GetSourceTargetPairingsResult, GetActionsNoActionResult, GetActionsTransfersResult, \
     GetActionsPlotReplacementResult
 
-# https://github.com/Chia-Network/chia-blockchain/wiki/k-sizes#storage-requirements
-PLOT_BYTES_BY_K = {
-    32: 108_880_000_000,  # 101.4 GiB
-    33: 224_200_000_000,  # 208.8 GiB
-    34: 461_490_000_000,  # 429.8 GiB
-    35: 949_300_000_000   # 884.1 GiB
-}
 
 # Since we don't get the disk usage information and the staged plot file size information at the same moment (they're
 # done in separate calls), we add a 5% error term to the staged file size as insurance against over-committing a drive
@@ -41,12 +34,11 @@ class HotplotsEngine:
     # plot_replacement, then it won't be until next run that the plot_replacement actions are produced.
     @staticmethod
     def get_actions(
-            config: HotplotsConfig,
             source_info: SourceInfo,
             targets_info: TargetsInfo
     ):
         # Get all source plots that aren't actively being transferred
-        ranked_hot_plots = HotplotsEngine.get_ranked_hot_plots(config, source_info, targets_info.active_transfers_map())
+        ranked_hot_plots = HotplotsEngine.get_ranked_hot_plots(source_info, targets_info.active_transfers_map())
 
         # Quick short-circuit
         if not ranked_hot_plots:
@@ -54,13 +46,12 @@ class HotplotsEngine:
             return
 
         # get the results from the pairing algorithm
-        source_target_pairings_result = HotplotsEngine.get_source_target_pairings(config, ranked_hot_plots, source_info, targets_info)
+        source_target_pairings_result = HotplotsEngine.get_source_target_pairings(ranked_hot_plots, source_info, targets_info)
 
         if source_target_pairings_result.pairings:
             # In the case that pairings were made, we're simply going to execute them and defer other things
             # such as plot replacement to the next invocation.
             return GetActionsTransfersResult(source_target_pairings_result.pairings)
-            pass
 
         elif source_target_pairings_result.unpaired_hot_plots_due_to_capping:
             # If any of our hot plots weren't transferrable because of capping, we'll simply recommend no action
@@ -73,7 +64,6 @@ class HotplotsEngine:
 
     @staticmethod
     def get_ranked_hot_plots(
-            config: HotplotsConfig,
             source_info: SourceInfo,
             active_transfers_map: dict[str, Tuple[Union[LocalHostConfig, RemoteHostConfig], TargetDriveConfig]]
     ) -> List[HotPlot]:
@@ -85,8 +75,8 @@ class HotplotsEngine:
 
         for source_drive_info in source_info.source_drive_infos:
             for source_plot in source_drive_info.source_plots:
-                if source_plot.plot_name_metadata.plot_id in active_transfers_map:
-                    logging.info("plot %s already in flight" % source_plot.plot_name_metadata.plot_id)
+                if source_plot.plot_name_metadata().plot_id in active_transfers_map:
+                    logging.info("plot %s already in flight" % source_plot.plot_name_metadata().plot_id)
                     source_drive_bytes_in_flight[source_drive_info.source_drive_config] += source_plot.size
                 else:
                     hot_plots.append(HotPlot(source_drive_info, source_plot))
@@ -94,16 +84,16 @@ class HotplotsEngine:
         # Build a map so we can easily sort by order appearing in config
         source_drive_info_config_order_lookup = {}
         i = 0
-        for source_drive_config in config.source.drives:
+        for source_drive_config in source_info.source_config.drives:
             source_drive_info_config_order_lookup[source_drive_config] = i
             i += 1
 
         # TODO: test ordering here, might need to add a negative sign to get desired orderings
         #       or might want to move sorting inside here so it can utilize reverse=true
         def sort_by_criteria(hot_plot: HotPlot):
-            selection_strategy = config.source.selection_strategy
+            selection_strategy = source_info.source_config.selection_strategy
             if selection_strategy == "plot_with_oldest_timestamp":
-                m = hot_plot.source_plot.plot_name_metadata
+                m = hot_plot.source_plot.plot_name_metadata()
                 return m.year, m.month, m.day, m.hour, m.minute
             elif selection_strategy == "drive_with_least_space_remaining":
                 bytes_in_flight = source_drive_bytes_in_flight[hot_plot.source_drive_info.source_drive_config]
@@ -114,11 +104,14 @@ class HotplotsEngine:
             elif selection_strategy == "config_order":
                 return source_drive_info_config_order_lookup[hot_plot.source_drive_info.source_drive_config]
             elif selection_strategy == "random":
-                return random.random()
+                # for random, we'll just sort by the plot_id which is cryptographically random
+                return hot_plot.source_plot.plot_name_metadata().plot_id
 
         sorted_hot_plots = []
         while hot_plots:
-            best_hot_plot: HotPlot = sorted(hot_plots, key=sort_by_criteria).pop(0)
+            # re-rank hotplots, since relevant state may have changed
+            hot_plots = sorted(hot_plots, key=sort_by_criteria)
+            best_hot_plot: HotPlot = hot_plots.pop(0)
             sorted_hot_plots.append(best_hot_plot)
             source_drive_bytes_in_flight[best_hot_plot.source_drive_info.source_drive_config] += best_hot_plot.source_plot.size
 
@@ -126,7 +119,6 @@ class HotplotsEngine:
 
     @staticmethod
     def get_source_target_pairings(
-            config: HotplotsConfig,
             ranked_hot_plots: List[HotPlot],
             source_info: SourceInfo,
             targets_info: TargetsInfo
@@ -199,7 +191,7 @@ class HotplotsEngine:
               - source drive max concurrent outbound transfers
               - target drive max concurrent inbound transfers
             """
-            max_concurrent_remote_transfers = config.targets.remote.max_concurrent_outbound_transfers
+            max_concurrent_remote_transfers = targets_info.remote_targets_info.remote_target_config.max_concurrent_outbound_transfers
             if remote_transfers >= max_concurrent_remote_transfers:
                 return True
 
@@ -227,11 +219,11 @@ class HotplotsEngine:
         # Build a map so we can easily sort by order appearing in config
         target_drive_config_order_lookup = {}
         i = 0
-        for target_drive_config in config.targets.local.drives:
+        for target_drive_config in targets_info.local_targets_info.local_host_config.drives:
             target_drive_config_order_lookup[target_drive_config] = i
             i += 1
 
-        for remote_host in config.targets.remote.hosts:
+        for remote_host in targets_info.remote_targets_info.remote_target_config.hosts:
             for target_drive_config in remote_host.drives:
                 target_drive_config_order_lookup[target_drive_config] = i
                 i += 1
@@ -242,7 +234,7 @@ class HotplotsEngine:
             # case the options would have to have been effectively equal. It doesn't seem
             # like error terms will really change anything in this scenario.
             def naive_rank_hot_plot_target_drives():
-                selection_strategy = config.targets.selection_strategy
+                selection_strategy = targets_info.targets_config.selection_strategy
                 if selection_strategy == "config_order":
                     def key_func(hot_plot_target_drive: HotPlotTargetDrive):
                         return target_drive_config_order_lookup[hot_plot_target_drive.target_drive_info.target_drive_config]
@@ -270,15 +262,16 @@ class HotplotsEngine:
 
             ranked_hot_plot_target_drives = naive_rank_hot_plot_target_drives()
 
-            if config.targets.target_host_preference == "unspecified":
+            if targets_info.targets_config.target_host_preference == "unspecified":
                 return ranked_hot_plot_target_drives
 
+            # split by whether they're local or remote, maintaining ranking
             ranked_local_hot_plot_target_drives = [x for x in ranked_hot_plot_target_drives if x.is_local()]
-            ranked_remote_hot_plot_target_drives = [x for x in ranked_hot_plot_target_drives if x.is_local()]
+            ranked_remote_hot_plot_target_drives = [x for x in ranked_hot_plot_target_drives if not x.is_local()]
 
-            if config.targets.target_host_preference == "local":
+            if targets_info.targets_config.target_host_preference == "local":
                 return ranked_local_hot_plot_target_drives + ranked_remote_hot_plot_target_drives
-            elif config.targets.target_host_preference == "remote":
+            elif targets_info.targets_config.target_host_preference == "remote":
                 return ranked_remote_hot_plot_target_drives + ranked_local_hot_plot_target_drives
 
         pairings = []
