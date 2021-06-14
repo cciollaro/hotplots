@@ -8,34 +8,31 @@ from hotplots.models import SourceInfo, TargetsInfo, HotPlot, HotPlotTargetDrive
 
 
 class PairingState:
-    __source_info: SourceInfo = None
-    __targets_info: TargetsInfo = None
-
-    __initially_skipped_hot_plots: List[HotPlot] = []
-    __unprocessed_hot_plots: List[HotPlot] = []
-
-    __pairings: List[Tuple[HotPlot, HotPlotTargetDrive]] = []
-    __unpaired_hot_plots_due_to_capping: List[HotPlot] = []
-    __unpaired_hot_plots_due_to_lack_of_space: List[HotPlot] = []
-
-    __all_hot_plot_target_drives: List[HotPlotTargetDrive] = []
-
-    __source_drive_bytes_in_flight: dict[SourceDriveConfig, int] = defaultdict(lambda: 0)
-    __source_drive_transfers_in_flight: dict[SourceDriveConfig, int] = defaultdict(lambda: 0)
-
-    __target_host_transfers_in_flight: dict[TargetHostId, int] = defaultdict(lambda: 0)
-
-    __target_drive_bytes_in_flight: dict[TargetDriveId, int] = defaultdict(lambda: 0)
-    __target_drive_transfers_in_flight: dict[TargetDriveId, int] = defaultdict(lambda: 0)
-
-    __total_remote_transfers_from_source_host: int = 0
-
-    __source_drive_config_order_lookup: dict[SourceDriveConfig, int] = {}
-    __target_drive_config_order_lookup: dict[TargetDriveConfig, int] = {}
-
     def __init__(self, source_drive_info: SourceInfo, targets_info: TargetsInfo):
         self.__source_info = source_drive_info
         self.__targets_info = targets_info
+
+        self.__initially_skipped_hot_plots: List[HotPlot] = []
+        self.__unprocessed_hot_plots: List[HotPlot] = []
+
+        self.__pairings: List[Tuple[HotPlot, HotPlotTargetDrive]] = []
+        self.__unpaired_hot_plots_due_to_capping: List[HotPlot] = []
+        self.__unpaired_hot_plots_due_to_lack_of_space: List[HotPlot] = []
+
+        self.__all_hot_plot_target_drives: List[HotPlotTargetDrive] = []
+
+        self.__source_drive_bytes_in_flight: dict[SourceDriveConfig, int] = defaultdict(lambda: 0)
+        self.__source_drive_transfers_in_flight: dict[SourceDriveConfig, int] = defaultdict(lambda: 0)
+
+        self.__target_host_transfers_in_flight: dict[TargetHostId, int] = defaultdict(lambda: 0)
+
+        self.__target_drive_bytes_in_flight: dict[TargetDriveId, int] = defaultdict(lambda: 0)
+        self.__target_drive_transfers_in_flight: dict[TargetDriveId, int] = defaultdict(lambda: 0)
+
+        self.__total_remote_transfers_from_source_host: int = 0
+
+        self.__source_drive_config_order_lookup: dict[SourceDriveConfig, int] = {}
+        self.__target_drive_config_order_lookup: dict[TargetDriveConfig, int] = {}
 
         self.__initialize_config_order_lookups()
 
@@ -46,7 +43,7 @@ class PairingState:
         target_host_id = TargetHostId.from_(target_host_config)
         for target_drive_info in self.__targets_info.local_targets_info.target_drive_infos:
             for in_flight_transfer in target_drive_info.in_flight_transfers:
-                initial_transfers_map[in_flight_transfer.plot_name_metadata.plot_id] = tuple((self.__targets_info.local_targets_info.local_host_config, target_drive_info.target_drive_config))
+                initial_transfers_map[in_flight_transfer.plot_name_metadata.plot_id] = (self.__targets_info.local_targets_info.local_host_config, target_drive_info.target_drive_config)
                 self.__target_host_transfers_in_flight[target_host_id] += 1
                 target_drive_id = TargetDriveId.from_(target_host_id, target_drive_info.target_drive_config)
                 self.__target_drive_bytes_in_flight[target_drive_id] += (Constants.PLOT_BYTES_BY_K[in_flight_transfer.plot_name_metadata.k] - in_flight_transfer.current_file_size)
@@ -136,30 +133,25 @@ class PairingState:
             def key_func(hot_plot: HotPlot):
                 m = hot_plot.source_plot.plot_name_metadata()
                 return m.year, m.month, m.day, m.hour, m.minute
-
             return sorted(hot_plots, key=key_func)
         elif selection_strategy == "drive_with_least_space_remaining":
             def key_func(hot_plot: HotPlot):
                 bytes_in_flight = self.__source_drive_bytes_in_flight[hot_plot.source_drive_info.source_drive_config]
                 return hot_plot.source_drive_info.free_bytes + bytes_in_flight
-
             return sorted(hot_plots, key=key_func)
         elif selection_strategy == "drive_with_lowest_percent_space_remaining":
             def key_func(hot_plot: HotPlot):
                 bytes_in_flight = self.__source_drive_bytes_in_flight[hot_plot.source_drive_info.source_drive_config]
                 return hot_plot.source_drive_info.total_bytes / (hot_plot.source_drive_info.free_bytes + bytes_in_flight)
-
             return sorted(hot_plots, key=key_func)
         elif selection_strategy == "config_order":
             def key_func(hot_plot: HotPlot):
                 return self.__source_drive_config_order_lookup[hot_plot.source_drive_info.source_drive_config]
-
             return sorted(hot_plots, key=key_func)
         elif selection_strategy == "random":
             def key_func(hot_plot: HotPlot):
                 # for random, we'll just sort by the plot_id which is randomly generated under normal circumstances
                 return hot_plot.source_plot.plot_name_metadata().plot_id
-
             return sorted(hot_plots, key=key_func)
 
     def rank_eligible_hot_plot_target_drives(self, eligible_hot_plot_target_drives: List[HotPlotTargetDrive]) -> List[HotPlotTargetDrive]:
@@ -251,20 +243,23 @@ class PairingState:
         return False
 
     def __initialize_config_order_lookups(self):
-        i = 0
         for source_drive_config in self.__source_info.source_config.drives:
-            self.__source_drive_config_order_lookup[source_drive_config] = i
-            i += 1
+            self.__source_drive_config_order_lookup[source_drive_config] = len(self.__source_drive_config_order_lookup)
 
-        i = 0
-        # Config order is always local then remote since we have no way of knowing which order
-        # they appear in the original YAML file.
-        # TODO: We could potentially utilize the targets.target_host_preference variable for this.
-        for target_drive_config in self.__targets_info.local_targets_info.local_host_config.drives:
-            self.__target_drive_config_order_lookup[target_drive_config] = i
-            i += 1
+        def initialize_remote_config_order_lookups():
+            for target_drive_config in self.__targets_info.local_targets_info.local_host_config.drives:
+                self.__target_drive_config_order_lookup[target_drive_config] = len(self.__target_drive_config_order_lookup)
 
-        for remote_host in self.__targets_info.remote_targets_info.remote_targets_config.hosts:
-            for target_drive_config in remote_host.drives:
-                self.__target_drive_config_order_lookup[target_drive_config] = i
-                i += 1
+        def initialize_local_config_order_lookups():
+            for remote_host in self.__targets_info.remote_targets_info.remote_targets_config.hosts:
+                for target_drive_config in remote_host.drives:
+                    self.__target_drive_config_order_lookup[target_drive_config] = len(self.__target_drive_config_order_lookup)
+
+        if self.__targets_info.targets_config.target_host_preference == "remote":
+            initialize_remote_config_order_lookups()
+            initialize_local_config_order_lookups()
+        else:
+            # if the value is "local" or "unspecified" we prefer local first
+            initialize_local_config_order_lookups()
+            initialize_remote_config_order_lookups()
+

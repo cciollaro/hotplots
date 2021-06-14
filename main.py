@@ -12,7 +12,7 @@ from hotplots.hotplots_logging import HotplotsLogging
 if __name__ == '__main__':
     hotplots_io = HotplotsIO()
 
-    # TODO make config filename configurable?
+    # TODO get config filename from commandline args
     config = hotplots_io.load_config_file("config-example.yaml")
     HotplotsLogging.initialize_logging(config.logging)
 

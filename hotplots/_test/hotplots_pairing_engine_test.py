@@ -35,7 +35,7 @@ class HotplotsPairingEngineTest(unittest.TestCase):
         remote_targets_info = RemoteTargetsInfo(remote_targets_config, [])
 
         # Finally
-        targets_config = TargetsConfig("config_order", local_host_config, remote_targets_config, "unspecified")
+        targets_config = TargetsConfig("drive_with_least_space_remaining", local_host_config, remote_targets_config, "local")
         targets_info = TargetsInfo(targets_config, local_targets_info, remote_targets_info)
 
         expected = EligiblePairingsResult([
@@ -69,12 +69,13 @@ class HotplotsPairingEngineTest(unittest.TestCase):
         remote_targets_info = RemoteTargetsInfo(remote_targets_config, [])
 
         # Finally
-        targets_config = TargetsConfig("config_order", local_host_config, remote_targets_config, "unspecified")
+        targets_config = TargetsConfig("drive_with_least_space_remaining", local_host_config, remote_targets_config, "local")
         targets_info = TargetsInfo(targets_config, local_targets_info, remote_targets_info)
 
         expected = EligiblePairingsResult([
             (HotPlot(source_drive_1_info, source_drive_1_source_plot_1), HotPlotTargetDrive(local_host_config, local_host_target_drive_1_info))
         ])
+        actual = HotplotsPairingEngine.get_pairings_result(source_info, targets_info)
 
         self.assertEqual(expected, HotplotsPairingEngine.get_pairings_result(source_info, targets_info))
 
@@ -116,9 +117,8 @@ class HotplotsPairingEngineTest(unittest.TestCase):
             (HotPlot(source_drive_2_info, source_drive_2_source_plot_1), HotPlotTargetDrive(local_host_config, local_host_target_drive_1_info)),
             (HotPlot(source_drive_1_info, source_drive_1_source_plot_1), HotPlotTargetDrive(remote_host_1_config, remote_host_1_target_drive_1_info)),
         ])
-
         actual = HotplotsPairingEngine.get_pairings_result(source_info, targets_info)
-        self.assertEqual(2, len(actual.pairings))
+
         self.assertEqual(expected, actual)
 
 
