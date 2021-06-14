@@ -9,7 +9,7 @@ import contextlib
 
 from hotplots.fs_access import HotplotsIO
 from hotplots.hotplots_config import HotplotsConfig
-from hotplots.hotplots_engine import HotplotsEngine
+from hotplots.hotplots_engine import HotplotsPairingEngine
 from hotplots.models import SourceInfo, LocalTargetsInfo, RemoteTargetsInfo, TargetsInfo
 
 
@@ -47,7 +47,7 @@ class Hotplots:
         # - no action
         # - transfers
         # - plot replacement
-        actions_result = HotplotsEngine.get_actions(self.config, source_info, targets_info)
+        actions_result = HotplotsPairingEngine.get_actions(self.config, source_info, targets_info)
 
 
 

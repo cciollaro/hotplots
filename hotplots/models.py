@@ -5,7 +5,7 @@ from hotplots.hotplots_config import SourceConfig, TargetDriveConfig, RemoteTarg
     SourceDriveConfig, RemoteHostConfig, TargetsConfig
 
 
-@dataclass
+@dataclass(frozen=True)
 class PlotNameMetadata:
     k: int
     year: int
@@ -44,21 +44,21 @@ class PlotNameMetadata:
 
 
 
-@dataclass
+@dataclass(frozen=True)
 class InFlightTransfer:
     filename: str
     current_file_size: int
     plot_name_metadata: PlotNameMetadata
 
 
-@dataclass
+@dataclass(frozen=True)
 class TargetDriveInfo:
     target_drive_config: TargetDriveConfig
     total_bytes: int
     free_bytes: int
     in_flight_transfers: List[InFlightTransfer]
 
-@dataclass
+@dataclass(frozen=True)
 class LocalTargetsInfo:
     local_host_config: LocalHostConfig
     target_drive_infos: list[TargetDriveInfo]
@@ -70,31 +70,33 @@ class SourcePlot:
     size: int
 
     def __post_init__(self):
-        object.__setattr__(self, 'plot_name_metadata_memoized', PlotNameMetadata.parse_from_filename(self.absolute_reference)
+        object.__setattr__(self, 'plot_name_metadata_memoized', PlotNameMetadata.parse_from_filename(self.absolute_reference))
 
     def plot_name_metadata(self):
         return self.plot_name_metadata_memoized
 
-@dataclass
+
+@dataclass(frozen=True)
 class SourceDriveInfo:
     source_drive_config: SourceDriveConfig
     total_bytes: int
     free_bytes: int
     source_plots: List[SourcePlot]
 
-@dataclass
+
+@dataclass(frozen=True)
 class SourceInfo:
     source_config: SourceConfig
     source_drive_infos: List[SourceDriveInfo]
 
 
-@dataclass
+@dataclass(frozen=True)
 class RemoteHostInfo:
     remote_host_config: RemoteHostConfig
     target_drive_infos: list[TargetDriveInfo]
 
 
-@dataclass
+@dataclass(frozen=True)
 class RemoteTargetsInfo:
     remote_target_config: RemoteTargetsConfig
     remote_host_infos: list[RemoteHostInfo]
@@ -106,32 +108,14 @@ class TargetsInfo:
     local_targets_info: LocalTargetsInfo
     remote_targets_info: RemoteTargetsInfo
 
-    # TODO: calculate this just once on instantiation
-    def active_transfers_map(self) -> dict[str, tuple[Union[LocalHostConfig, RemoteHostConfig], TargetDriveConfig]]:
-        # plot_id -> (HostConfig, TargetDriveConfig) (if can also differentiate host)
-        active_transfers_map = {}
-        # TODO fix variable names here
-        for x in self.local_targets_info.target_drive_infos:
-            for y in x.in_flight_transfers:
-                active_transfers_map[y.plot_name_metadata.plot_id] = (self.local_targets_info.local_host_config, x.target_drive_config)
 
-        # TODO fix variable names here
-        for x in self.remote_targets_info.remote_host_infos:
-            for y in x.target_drive_infos:
-                for z in y.in_flight_transfers:
-                    active_transfers_map[z.plot_name_metadata.plot_id] = (x.remote_host_config, y.target_drive_config)
-
-        return active_transfers_map
-
-
-
-@dataclass
+@dataclass(frozen=True)
 class HotPlot:
     source_drive_info: SourceDriveInfo
     source_plot: SourcePlot
 
 
-@dataclass
+@dataclass(frozen=True)
 class HotPlotTargetDrive:
     host_config: Union[LocalHostConfig, RemoteHostConfig]
     target_drive_info: TargetDriveInfo
@@ -150,11 +134,12 @@ class GetSourceTargetPairingsResult:
 class GetActionsTransfersResult:
     transfers: List[Tuple[HotPlot, HotPlotTargetDrive]]
 
+
 @dataclass(frozen=True)
 class GetActionsNoActionResult:
     pass
 
-@dataclass
-class GetActionsPlotReplacementResult:
-    hot_plots: List[HotPlot]
 
+@dataclass(frozen=True)
+class GetActionsPlotReplacementResult:
+    pass
