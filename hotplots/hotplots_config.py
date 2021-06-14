@@ -48,9 +48,9 @@ class TargetDriveConfig:
     plot_replacement: PlotReplacementConfig = PlotReplacementConfig()
 
 
-@dataclass(frozen=True, unsafe_hash=True)
+@dataclass(frozen=True)
 class LocalHostConfig:
-    drives: List[TargetDriveConfig] = field(repr=True, compare=False, hash=False)
+    drives: List[TargetDriveConfig]
 
     # local host doesn't have a max concurrent inbound transfers, but for parity
     # with remote hosts we'll just set it essentially to infinity.
@@ -63,14 +63,13 @@ class LocalHostConfig:
     def get_hostname(self):
         return "localhost"
 
-
-@dataclass(frozen=True, unsafe_hash=True)
+@dataclass(frozen=True)
 class RemoteHostConfig:
-    hostname: str = field(hash=True)
-    username: str = field(hash=True)
-    port: int = field(hash=True)
-    max_concurrent_inbound_transfers: int = field(hash=True)
-    drives: List[TargetDriveConfig] = field(repr=True, compare=False, hash=False)
+    hostname: str
+    username: str
+    port: int
+    max_concurrent_inbound_transfers: int
+    drives: List[TargetDriveConfig]
 
     def is_local(self):
         return False

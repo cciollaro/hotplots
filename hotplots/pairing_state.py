@@ -8,9 +8,9 @@ from hotplots.models import SourceInfo, TargetsInfo, HotPlot, HotPlotTargetDrive
 
 
 class PairingState:
-    def __init__(self, source_drive_info: SourceInfo, targets_info: TargetsInfo):
-        self.__source_info = source_drive_info
-        self.__targets_info = targets_info
+    def __init__(self, source_info: SourceInfo, targets_info: TargetsInfo):
+        self.__source_info: SourceInfo = source_info
+        self.__targets_info: TargetsInfo = targets_info
 
         self.__initially_skipped_hot_plots: List[HotPlot] = []
         self.__unprocessed_hot_plots: List[HotPlot] = []
@@ -72,18 +72,18 @@ class PairingState:
                 self.__all_hot_plot_target_drives.append(hot_plot_target_drive)
 
         # update state w/ source drive info
-        for source_drive_info in self.__source_info.source_drive_infos:
-            for source_plot in source_drive_info.source_plots:
+        for source_info in self.__source_info.source_drive_infos:
+            for source_plot in source_info.source_plots:
                 if source_plot.plot_name_metadata().plot_id in initial_transfers_map:
                     (host_config, target_drive_config) = initial_transfers_map[source_plot.plot_name_metadata().plot_id]
                     if not host_config.is_local():
                         self.__total_remote_transfers_from_source_host += 1
 
-                    self.__source_drive_transfers_in_flight[source_drive_info.source_drive_config] += 1
-                    self.__source_drive_bytes_in_flight[source_drive_info.source_drive_config] += source_plot.size
-                    self.__initially_skipped_hot_plots.append(HotPlot(source_drive_info, source_plot))
+                    self.__source_drive_transfers_in_flight[source_info.source_drive_config] += 1
+                    self.__source_drive_bytes_in_flight[source_info.source_drive_config] += source_plot.size
+                    self.__initially_skipped_hot_plots.append(HotPlot(source_info, source_plot))
                 else:
-                    self.__unprocessed_hot_plots.append(HotPlot(source_drive_info, source_plot))
+                    self.__unprocessed_hot_plots.append(HotPlot(source_info, source_plot))
 
     def commit_pairing(self, hot_plot: HotPlot, hot_plot_target_drive: HotPlotTargetDrive):
         self.__pairings.append((hot_plot, hot_plot_target_drive))
@@ -226,7 +226,6 @@ class PairingState:
         target_drive_id = TargetDriveId.from_(target_host_id, hot_plot_target_drive.target_drive_info.target_drive_config)
         if self.__target_drive_transfers_in_flight[target_drive_id] >= target_drive_max_concurrent_inbound_transfers:
             return True
-
 
         return False
 
