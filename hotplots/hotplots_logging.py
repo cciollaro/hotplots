@@ -9,8 +9,8 @@ class HotplotsLogging:
     def initialize_logging(logging_config: LoggingConfig) -> None:
         logging.basicConfig(
             format="%(asctime)s;%(levelname)s;%(message)s",
-            handlers=HotplotsLogging.handlers(logging_config),
-            level=logging.getLevelName(logging_config.level)
+            level=logging.getLevelName(logging_config.level),
+            handlers=HotplotsLogging.handlers(logging_config)
         )
 
     @staticmethod

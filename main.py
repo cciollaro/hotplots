@@ -5,7 +5,7 @@ from hotplots.fs_access import HotplotsIO
 from hotplots.hotplots import Hotplots
 from hotplots.hotplots_logging import HotplotsLogging
 
-# TODO `verify` that just tests touching and deleting a small file to each destination and outputs results
+# TODO `verify` command that just tests touching and deleting a small file to each destination and outputs results
 #   checks if rsync is installed
 #   checks if progress is installed
 #   could even run it on startup (conditionally)

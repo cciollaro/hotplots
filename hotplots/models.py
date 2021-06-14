@@ -130,16 +130,3 @@ class GetSourceTargetPairingsResult:
     unpaired_hot_plots_due_to_no_space: List[HotPlot]
 
 
-@dataclass(frozen=True)
-class GetActionsTransfersResult:
-    transfers: List[Tuple[HotPlot, HotPlotTargetDrive]]
-
-
-@dataclass(frozen=True)
-class GetActionsNoActionResult:
-    pass
-
-
-@dataclass(frozen=True)
-class GetActionsPlotReplacementResult:
-    pass

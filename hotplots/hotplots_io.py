@@ -1,6 +1,7 @@
 import logging
 import os
 import socket
+import subprocess
 from glob import glob
 
 import desert
@@ -9,10 +10,19 @@ import yaml
 
 from hotplots.hotplots_config import HotplotsConfig
 from hotplots.models import PlotNameMetadata, InFlightTransfer, SourceDriveInfo, RemoteHostInfo, SourceConfig, \
-    SourcePlot, SourceInfo, LocalHostConfig, LocalTargetsInfo, RemoteTargetsConfig, RemoteTargetsInfo, TargetDriveInfo
+    SourcePlot, SourceInfo, LocalHostConfig, LocalTargetsInfo, RemoteTargetsConfig, RemoteTargetsInfo, TargetDriveInfo, \
+    HotPlotTargetDrive, HotPlot
 
 
 class HotplotsIO:
+    def __init__(self):
+        # cache of target_config -> plot absolute reference -> memo data to avoid unnecessary disk reads
+        # self.memo_cache = {}
+
+        # don't have to check drives that are full
+        # self.full_target_drives_cache = {}
+        pass
+
     """
     The goal here is to encapsulate all IO access, so things can more easily be tested and mocked.
     """
@@ -108,8 +118,7 @@ class HotplotsIO:
             client.connect(
                 resolved_ip,
                 port=remote_host_config.port,
-                username=remote_host_config.username,
-                password=remote_host_config.password
+                username=remote_host_config.username
             )
 
             target_drive_infos = []
@@ -167,19 +176,19 @@ class HotplotsIO:
             remote_host_infos
         )
 
-    # TODO copied from old version, fix me
-    def move_plot(self, source_plot, destination):
-        if destination["config"]["type"] == "local":
+    def transfer_plot(self, hot_plot: HotPlot, hot_plot_target_drive: HotPlotTargetDrive):
+        if hot_plot_target_drive.host_config.is_local():
             move_plot_cmd = "rsync -av --remove-source-files %s %s" % (
-                source_plot["absolute_reference"], destination["config"]["dir"]
+                hot_plot.source_plot.absolute_reference,
+                hot_plot_target_drive.target_drive_info.target_drive_config.path
             )
-        else:  # remote
-            resolved_ip = socket.gethostbyname(destination['config']['hostname'])
+        else:
+            resolved_ip = socket.gethostbyname(hot_plot_target_drive.host_config.hostname)
             move_plot_cmd = "rsync -av --remove-source-files -e ssh %s %s@%s:%s" % (
-                source_plot["absolute_reference"],
-                destination["config"]["username"],
+                hot_plot.source_plot.absolute_reference,
+                hot_plot_target_drive.host_config.username,
                 resolved_ip,
-                destination["config"]["dir"]
+                hot_plot_target_drive.target_drive_info.target_drive_config.path
             )
 
         logging.info("Running move plot command: %s" % move_plot_cmd)

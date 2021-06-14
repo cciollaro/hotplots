@@ -61,7 +61,6 @@ class RemoteHostConfig:
     port: int
     max_concurrent_inbound_transfers: int
     drives: List[TargetDriveConfig]
-    password: str = ""
 
     def is_local(self):
         return False
