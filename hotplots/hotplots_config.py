@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+import sys
+from dataclasses import dataclass, field
 from typing import List
 
 
@@ -47,23 +48,35 @@ class TargetDriveConfig:
     plot_replacement: PlotReplacementConfig = PlotReplacementConfig()
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, unsafe_hash=True)
 class LocalHostConfig:
-    drives: List[TargetDriveConfig]
+    drives: List[TargetDriveConfig] = field(repr=True, compare=False, hash=False)
+
+    # local host doesn't have a max concurrent inbound transfers, but for parity
+    # with remote hosts we'll just set it essentially to infinity.
+    def __post_init__(self):
+        object.__setattr__(self, 'max_concurrent_inbound_transfers', sys.maxsize)
 
     def is_local(self):
         return True
 
-@dataclass(frozen=True)
+    def get_hostname(self):
+        return "localhost"
+
+
+@dataclass(frozen=True, unsafe_hash=True)
 class RemoteHostConfig:
-    hostname: str
-    username: str
-    port: int
-    max_concurrent_inbound_transfers: int
-    drives: List[TargetDriveConfig]
+    hostname: str = field(hash=True)
+    username: str = field(hash=True)
+    port: int = field(hash=True)
+    max_concurrent_inbound_transfers: int = field(hash=True)
+    drives: List[TargetDriveConfig] = field(repr=True, compare=False, hash=False)
 
     def is_local(self):
         return False
+
+    def get_hostname(self):
+        return self.hostname
 
 
 @dataclass(frozen=True)

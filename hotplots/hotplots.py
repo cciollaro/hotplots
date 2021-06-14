@@ -18,7 +18,7 @@ class Hotplots:
 
         # If no plot files, there's definitely nothing to do
         if all([not s.source_plots for s in source_info.source_drive_infos]):
-            logging.info("Found no source plot files")
+            logging.info("didn't find any source plot files")
             return
 
         # Next, let's fetch disk space and staged plots information from all targets
@@ -35,7 +35,7 @@ class Hotplots:
             [
                 self.hotplots_io.transfer_plot(hot_plot, hot_plot_target_drive)
                 for (hot_plot, hot_plot_target_drive)
-                in pairings_result.transfers
+                in pairings_result.pairings
             ]
         elif isinstance(pairings_result, PlotReplacementResult):
             # TODO plot replacement

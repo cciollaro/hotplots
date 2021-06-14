@@ -11,7 +11,7 @@ class PairingsResult:
 
 @dataclass
 class EligiblePairingsResult(PairingsResult):
-    transfers: List[Tuple[HotPlot, HotPlotTargetDrive]]
+    pairings: List[Tuple[HotPlot, HotPlotTargetDrive]]
 
 
 @dataclass

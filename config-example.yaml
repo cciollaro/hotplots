@@ -65,7 +65,6 @@ targets:
     hosts:
       - hostname: thinkcentre.local
         username: cc
-        password: ""
         port: 22
         # Note: This limit is globally, from all plotting machines.
         max_concurrent_inbound_transfers: 4

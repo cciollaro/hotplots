@@ -1,7 +1,7 @@
 import logging
 import time
 
-from hotplots.fs_access import HotplotsIO
+from hotplots.hotplots_io import HotplotsIO
 from hotplots.hotplots import Hotplots
 from hotplots.hotplots_logging import HotplotsLogging
 
@@ -10,14 +10,13 @@ from hotplots.hotplots_logging import HotplotsLogging
 #   checks if progress is installed
 #   could even run it on startup (conditionally)
 if __name__ == '__main__':
-    # use real filesystem access
-    fs_access = HotplotsIO()
+    hotplots_io = HotplotsIO()
 
     # TODO make config filename configurable?
-    config = fs_access.load_config_file("config-example.yaml")
+    config = hotplots_io.load_config_file("config-example.yaml")
     HotplotsLogging.initialize_logging(config.logging)
 
-    hotplots = Hotplots(config, fs_access)
+    hotplots = Hotplots(config, hotplots_io)
 
     while True:
         try:

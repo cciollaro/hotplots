@@ -2,131 +2,124 @@ import unittest
 
 from hotplots._test.helpers.test_helpers import TestHelpers
 from hotplots.constants import Constants
-from hotplots.hotplots_config import SourceDriveConfig, SourceConfig
-from hotplots.hotplots_pairing_engine import HotplotsPairingEngine
-from hotplots.models import SourceInfo, SourceDriveInfo, HotPlot
+from hotplots.hotplots_config import SourceDriveConfig, SourceConfig, RemoteTargetsConfig, RemoteHostConfig, \
+    TargetDriveConfig, LocalHostConfig, TargetsConfig
+from hotplots.hotplots_pairing_engine import HotplotsPairingEngine, EligiblePairingsResult
+from hotplots.models import SourceInfo, SourceDriveInfo, HotPlot, RemoteTargetsInfo, RemoteHostInfo, TargetDriveInfo, \
+    TargetsInfo, LocalTargetsInfo, HotPlotTargetDrive
 
 
 class HotplotsPairingEngineTest(unittest.TestCase):
-    def test_get_ranked_hotplots__no_source_plots(self):
-        source_drive_config_1 = SourceDriveConfig("/mnt/source1", 1)
-        source_config = SourceConfig([source_drive_config_1], 60, "drive_with_least_space_remaining")
+    def test__source__plot_with_oldest_timestamp(self):
+        # Source configuration and info
+        source_drive_1_config = SourceDriveConfig("/mnt/source1", 1)
+        source_drive_1_source_plot_1 = TestHelpers.create_mock_source_plot(source_drive_1_config, 32, 2021, 6, 27, 21, 59)
+        source_drive_1_info = SourceDriveInfo(source_drive_1_config, 1 * Constants.TERABYTE, 1 * Constants.TERABYTE, [source_drive_1_source_plot_1])
 
-        source_drive_info_1 = SourceDriveInfo(source_drive_config_1, 1 * Constants.TERABYTE, 1 * Constants.TERABYTE, [])
-        source_info = SourceInfo(source_config, [source_drive_info_1])
+        source_drive_2_config = SourceDriveConfig("/mnt/source2", 1)
+        source_drive_2_source_plot_1 = TestHelpers.create_mock_source_plot(source_drive_2_config, 32, 2021, 6, 27, 21, 58)
+        source_drive_2_info = SourceDriveInfo(source_drive_2_config, 1 * Constants.TERABYTE, 600 * Constants.GIGABYTE, [source_drive_2_source_plot_1])
 
-        self.assertEqual(HotplotsPairingEngine.get_ranked_hot_plots(source_info, {}), [])
+        source_config = SourceConfig([source_drive_1_config, source_drive_2_config], 60, "plot_with_oldest_timestamp")
+        source_info = SourceInfo(source_config, [source_drive_1_info, source_drive_2_info])
 
-    def test_get_ranked_hotplots__1_source_plot(self):
-        source_drive_config_1 = SourceDriveConfig("/mnt/source1", 1)
-        source_config = SourceConfig([source_drive_config_1], 60, "drive_with_least_space_remaining")
+        # Local configuration and info
+        local_host_target_drive_1_config = TargetDriveConfig("/mnt/target1", 1)
+        local_host_target_drive_1_info = TargetDriveInfo(local_host_target_drive_1_config, 100 * Constants.TERABYTE, 100 * Constants.TERABYTE, [])
 
-        source_plot_1_1 = TestHelpers.create_mock_source_plot(source_drive_config_1, 32, 2021, 6, 27, 21, 59)
+        local_host_config = LocalHostConfig([local_host_target_drive_1_config])
+        local_targets_info = LocalTargetsInfo(local_host_config, [local_host_target_drive_1_info])
 
-        source_drive_info_1 = SourceDriveInfo(source_drive_config_1, 1 * Constants.TERABYTE, 1 * Constants.TERABYTE, [source_plot_1_1])
-        source_info = SourceInfo(source_config, [source_drive_info_1])
+        # Remote configuration and info
+        remote_targets_config = RemoteTargetsConfig(1, [])
+        remote_targets_info = RemoteTargetsInfo(remote_targets_config, [])
 
-        self.assertEqual(HotplotsPairingEngine.get_ranked_hot_plots(source_info, {}), [HotPlot(source_drive_info_1, source_plot_1_1)])
+        # Finally
+        targets_config = TargetsConfig("config_order", local_host_config, remote_targets_config, "unspecified")
+        targets_info = TargetsInfo(targets_config, local_targets_info, remote_targets_info)
 
-    def test_get_ranked_hotplots__plot_with_oldest_timestamp(self):
-        source_drive_config_1 = SourceDriveConfig("/mnt/source1", 1)
-        source_plot_1_1 = TestHelpers.create_mock_source_plot(source_drive_config_1, 32, 2021, 6, 27, 21, 59)
+        expected = EligiblePairingsResult([
+            (HotPlot(source_drive_2_info, source_drive_2_source_plot_1), HotPlotTargetDrive(local_host_config, local_host_target_drive_1_info))
+        ])
 
-        source_drive_config_2 = SourceDriveConfig("/mnt/source2", 1)
-        source_plot_2_1 = TestHelpers.create_mock_source_plot(source_drive_config_2, 32, 2021, 6, 27, 21, 58)
+        self.assertEqual(expected, HotplotsPairingEngine.get_pairings_result(source_info, targets_info))
 
-        source_config = SourceConfig([source_drive_config_1, source_drive_config_2], 60, "plot_with_oldest_timestamp")
+    def test__source__random(self):
+        # Source configuration and info
+        source_drive_1_config = SourceDriveConfig("/mnt/source1", 1)
+        source_drive_1_source_plot_1 = TestHelpers.create_mock_source_plot(source_drive_1_config, 32, 2021, 6, 27, 21, 59, "a"*64)
+        source_drive_1_info = SourceDriveInfo(source_drive_1_config, 1 * Constants.TERABYTE, 1 * Constants.TERABYTE, [source_drive_1_source_plot_1])
 
-        source_drive_info_1 = SourceDriveInfo(source_drive_config_1, 1 * Constants.TERABYTE, 1 * Constants.TERABYTE, [source_plot_1_1])
-        source_drive_info_2 = SourceDriveInfo(source_drive_config_2, 1 * Constants.TERABYTE, 600 * Constants.GIGABYTE, [source_plot_2_1])
-        source_info = SourceInfo(source_config, [source_drive_info_1, source_drive_info_2])
+        source_drive_2_config = SourceDriveConfig("/mnt/source2", 1)
+        source_drive_2_source_plot_1 = TestHelpers.create_mock_source_plot(source_drive_2_config, 32, 2021, 6, 27, 21, 59, "b"*64)
+        source_drive_2_info = SourceDriveInfo(source_drive_2_config, 1 * Constants.TERABYTE, 600 * Constants.GIGABYTE, [source_drive_2_source_plot_1])
 
-        expected = [
-            HotPlot(source_drive_info_2, source_plot_2_1),
-            HotPlot(source_drive_info_1, source_plot_1_1)
-        ]
+        source_config = SourceConfig([source_drive_1_config, source_drive_2_config], 60, "random")
+        source_info = SourceInfo(source_config, [source_drive_1_info, source_drive_2_info])
 
-        self.assertEqual(HotplotsPairingEngine.get_ranked_hot_plots(source_info, {}), expected)
+        # Local configuration and info
+        local_host_target_drive_1_config = TargetDriveConfig("/mnt/target1", 1)
+        local_host_target_drive_1_info = TargetDriveInfo(local_host_target_drive_1_config, 100 * Constants.TERABYTE, 100 * Constants.TERABYTE, [])
 
-    def test_get_ranked_hotplots__drive_with_least_space_remaining(self):
-        source_drive_config_1 = SourceDriveConfig("/mnt/source1", 1)
-        source_plot_1_1 = TestHelpers.create_mock_source_plot(source_drive_config_1, 32, 2021, 6, 27, 21, 59)
+        local_host_config = LocalHostConfig([local_host_target_drive_1_config])
+        local_targets_info = LocalTargetsInfo(local_host_config, [local_host_target_drive_1_info])
 
-        source_drive_config_2 = SourceDriveConfig("/mnt/source2", 1)
-        source_plot_2_1 = TestHelpers.create_mock_source_plot(source_drive_config_2, 32, 2021, 6, 27, 21, 58)
+        # Remote configuration and info
+        remote_targets_config = RemoteTargetsConfig(1, [])
+        remote_targets_info = RemoteTargetsInfo(remote_targets_config, [])
 
-        source_config = SourceConfig([source_drive_config_1, source_drive_config_2], 60, "drive_with_least_space_remaining")
+        # Finally
+        targets_config = TargetsConfig("config_order", local_host_config, remote_targets_config, "unspecified")
+        targets_info = TargetsInfo(targets_config, local_targets_info, remote_targets_info)
 
-        source_drive_info_1 = SourceDriveInfo(source_drive_config_1, 1 * Constants.TERABYTE, 1 * Constants.TERABYTE, [source_plot_1_1])
-        source_drive_info_2 = SourceDriveInfo(source_drive_config_2, 1 * Constants.TERABYTE, 600 * Constants.GIGABYTE, [source_plot_2_1])
-        source_info = SourceInfo(source_config, [source_drive_info_1, source_drive_info_2])
+        expected = EligiblePairingsResult([
+            (HotPlot(source_drive_1_info, source_drive_1_source_plot_1), HotPlotTargetDrive(local_host_config, local_host_target_drive_1_info))
+        ])
 
-        expected = [
-            HotPlot(source_drive_info_2, source_plot_2_1),
-            HotPlot(source_drive_info_1, source_plot_1_1)
-        ]
+        self.assertEqual(expected, HotplotsPairingEngine.get_pairings_result(source_info, targets_info))
 
-        self.assertEqual(HotplotsPairingEngine.get_ranked_hot_plots(source_info, {}), expected)
+    def test_two_eligible_targets(self):
+        # Source configuration and info
+        source_drive_1_config = SourceDriveConfig("/mnt/source1", 1)
+        source_drive_1_source_plot_1 = TestHelpers.create_mock_source_plot(source_drive_1_config, 32, 2021, 6, 27, 21, 59)
+        source_drive_1_info = SourceDriveInfo(source_drive_1_config, 1 * Constants.TERABYTE, 1 * Constants.TERABYTE, [source_drive_1_source_plot_1])
 
-    def test_get_ranked_hotplots__drive_with_lowest_percent_space_remaining(self):
-        source_drive_config_1 = SourceDriveConfig("/mnt/source1", 1)
-        source_plot_1_1 = TestHelpers.create_mock_source_plot(source_drive_config_1, 32, 2021, 6, 27, 21, 59)
+        source_drive_2_config = SourceDriveConfig("/mnt/source2", 1)
+        source_drive_2_source_plot_1 = TestHelpers.create_mock_source_plot(source_drive_2_config, 32, 2021, 6, 27, 21, 58)
+        source_drive_2_info = SourceDriveInfo(source_drive_2_config, 1 * Constants.TERABYTE, 600 * Constants.GIGABYTE, [source_drive_2_source_plot_1])
 
-        source_drive_config_2 = SourceDriveConfig("/mnt/source2", 1)
-        source_plot_2_1 = TestHelpers.create_mock_source_plot(source_drive_config_2, 32, 2021, 6, 27, 21, 58)
+        source_config = SourceConfig([source_drive_1_config, source_drive_2_config], 60, "plot_with_oldest_timestamp")
+        source_info = SourceInfo(source_config, [source_drive_1_info, source_drive_2_info])
 
-        source_config = SourceConfig([source_drive_config_1, source_drive_config_2], 60, "drive_with_lowest_percent_space_remaining")
+        # Local configuration and info
+        local_host_target_drive_1_config = TargetDriveConfig("/mnt/target1", 1)
+        local_host_target_drive_1_info = TargetDriveInfo(local_host_target_drive_1_config, 100 * Constants.TERABYTE, 100 * Constants.TERABYTE, [])
 
-        source_drive_info_1 = SourceDriveInfo(source_drive_config_1, 10 * Constants.TERABYTE, 1 * Constants.TERABYTE, [source_plot_1_1])
-        source_drive_info_2 = SourceDriveInfo(source_drive_config_2, 1 * Constants.TERABYTE, 600 * Constants.GIGABYTE, [source_plot_2_1])
-        source_info = SourceInfo(source_config, [source_drive_info_1, source_drive_info_2])
+        local_host_config = LocalHostConfig([local_host_target_drive_1_config])
+        local_targets_info = LocalTargetsInfo(local_host_config, [local_host_target_drive_1_info])
 
-        expected = [
-            HotPlot(source_drive_info_1, source_plot_1_1),
-            HotPlot(source_drive_info_2, source_plot_2_1)
-        ]
+        # Remote configuration and info
+        remote_host_1_target_drive_1_config = TargetDriveConfig("/mnt/target1", 1)
+        remote_host_1_target_drive_1_info = TargetDriveInfo(remote_host_1_target_drive_1_config, 100*Constants.TERABYTE, 100*Constants.TERABYTE, [])
 
-        self.assertEqual(HotplotsPairingEngine.get_ranked_hot_plots(source_info, {}), expected)
+        remote_host_1_config = RemoteHostConfig("host1", "user1", 22, 1, [remote_host_1_target_drive_1_config])
+        remote_host_1_info = RemoteHostInfo(remote_host_1_config, [remote_host_1_target_drive_1_info])
 
-    def test_get_ranked_hotplots__config_order(self):
-        source_drive_config_1 = SourceDriveConfig("/mnt/source1", 1)
-        source_plot_1_1 = TestHelpers.create_mock_source_plot(source_drive_config_1, 32, 2021, 6, 27, 21, 59)
+        remote_targets_config = RemoteTargetsConfig(1, [remote_host_1_config])
+        remote_targets_info = RemoteTargetsInfo(remote_targets_config, [remote_host_1_info])
 
-        source_drive_config_2 = SourceDriveConfig("/mnt/source2", 1)
-        source_plot_2_1 = TestHelpers.create_mock_source_plot(source_drive_config_2, 32, 2021, 6, 27, 21, 58)
+        # Finally
+        targets_config = TargetsConfig("config_order", local_host_config, remote_targets_config, "local")
+        targets_info = TargetsInfo(targets_config, local_targets_info, remote_targets_info)
 
-        source_config = SourceConfig([source_drive_config_1, source_drive_config_2], 60, "config_order")
+        expected = EligiblePairingsResult([
+            (HotPlot(source_drive_2_info, source_drive_2_source_plot_1), HotPlotTargetDrive(local_host_config, local_host_target_drive_1_info)),
+            (HotPlot(source_drive_1_info, source_drive_1_source_plot_1), HotPlotTargetDrive(remote_host_1_config, remote_host_1_target_drive_1_info)),
+        ])
 
-        source_drive_info_1 = SourceDriveInfo(source_drive_config_1, 10 * Constants.TERABYTE, 1 * Constants.TERABYTE, [source_plot_1_1])
-        source_drive_info_2 = SourceDriveInfo(source_drive_config_2, 1 * Constants.TERABYTE, 600 * Constants.GIGABYTE, [source_plot_2_1])
-        source_info = SourceInfo(source_config, [source_drive_info_1, source_drive_info_2])
-
-        expected = [
-            HotPlot(source_drive_info_1, source_plot_1_1),
-            HotPlot(source_drive_info_2, source_plot_2_1)
-        ]
-
-        self.assertEqual(HotplotsPairingEngine.get_ranked_hot_plots(source_info, {}), expected)
-
-    def test_get_ranked_hotplots__random(self):
-        source_drive_config_1 = SourceDriveConfig("/mnt/source1", 1)
-        source_plot_1_1 = TestHelpers.create_mock_source_plot(source_drive_config_1, 32, 2021, 6, 27, 21, 59, "a"*64)
-
-        source_drive_config_2 = SourceDriveConfig("/mnt/source2", 1)
-        source_plot_2_1 = TestHelpers.create_mock_source_plot(source_drive_config_2, 32, 2021, 6, 27, 21, 58, "b"*64)
-
-        source_config = SourceConfig([source_drive_config_1, source_drive_config_2], 60, "random")
-
-        source_drive_info_1 = SourceDriveInfo(source_drive_config_1, 10 * Constants.TERABYTE, 1 * Constants.TERABYTE, [source_plot_1_1])
-        source_drive_info_2 = SourceDriveInfo(source_drive_config_2, 1 * Constants.TERABYTE, 600 * Constants.GIGABYTE, [source_plot_2_1])
-        source_info = SourceInfo(source_config, [source_drive_info_1, source_drive_info_2])
-
-        expected = [
-            HotPlot(source_drive_info_1, source_plot_1_1),
-            HotPlot(source_drive_info_2, source_plot_2_1)
-        ]
-
-        self.assertEqual(HotplotsPairingEngine.get_ranked_hot_plots(source_info, {}), expected)
+        actual = HotplotsPairingEngine.get_pairings_result(source_info, targets_info)
+        self.assertEqual(2, len(actual.pairings))
+        self.assertEqual(expected, actual)
 
 
 if __name__ == '__main__':

@@ -4,7 +4,7 @@ from typing import Tuple, Union, List
 
 from hotplots.constants import Constants
 from hotplots.hotplots_config import SourceDriveConfig, LocalHostConfig, RemoteHostConfig, TargetDriveConfig
-from hotplots.models import SourceInfo, TargetsInfo, HotPlot, HotPlotTargetDrive
+from hotplots.models import SourceInfo, TargetsInfo, HotPlot, HotPlotTargetDrive, TargetDriveId, TargetHostId
 
 
 class PairingState:
@@ -23,10 +23,10 @@ class PairingState:
     __source_drive_bytes_in_flight: dict[SourceDriveConfig, int] = defaultdict(lambda: 0)
     __source_drive_transfers_in_flight: dict[SourceDriveConfig, int] = defaultdict(lambda: 0)
 
-    __target_host_transfers_in_flight: dict[Union[LocalHostConfig, RemoteHostConfig], int] = defaultdict(lambda: 0)
+    __target_host_transfers_in_flight: dict[TargetHostId, int] = defaultdict(lambda: 0)
 
-    __target_drive_bytes_in_flight: dict[Tuple[Union[LocalHostConfig, RemoteHostConfig], TargetDriveConfig], int] = defaultdict(lambda: 0)
-    __target_drive_transfers_in_flight: dict[Tuple[Union[LocalHostConfig, RemoteHostConfig], TargetDriveConfig], int] = defaultdict(lambda: 0)
+    __target_drive_bytes_in_flight: dict[TargetDriveId, int] = defaultdict(lambda: 0)
+    __target_drive_transfers_in_flight: dict[TargetDriveId, int] = defaultdict(lambda: 0)
 
     __total_remote_transfers_from_source_host: int = 0
 
@@ -43,12 +43,13 @@ class PairingState:
 
         # update state w/ local target info
         target_host_config = self.__targets_info.local_targets_info.local_host_config
+        target_host_id = TargetHostId.from_(target_host_config)
         for target_drive_info in self.__targets_info.local_targets_info.target_drive_infos:
             for in_flight_transfer in target_drive_info.in_flight_transfers:
-                initial_transfers_map[in_flight_transfer.plot_name_metadata.plot_id] = (self.__targets_info.local_targets_info.local_host_config, target_drive_info.target_drive_config)
-                self.__target_host_transfers_in_flight[target_host_config] += 1
-                target_host_and_drive_configs = (target_host_config, target_drive_info.target_drive_config)
-                self.__target_drive_bytes_in_flight[target_host_and_drive_configs] += (Constants.PLOT_BYTES_BY_K[in_flight_transfer.plot_name_metadata.k] - in_flight_transfer.current_file_size)
+                initial_transfers_map[in_flight_transfer.plot_name_metadata.plot_id] = tuple((self.__targets_info.local_targets_info.local_host_config, target_drive_info.target_drive_config))
+                self.__target_host_transfers_in_flight[target_host_id] += 1
+                target_drive_id = TargetDriveId.from_(target_host_id, target_drive_info.target_drive_config)
+                self.__target_drive_bytes_in_flight[target_drive_id] += (Constants.PLOT_BYTES_BY_K[in_flight_transfer.plot_name_metadata.k] - in_flight_transfer.current_file_size)
 
             hot_plot_target_drive = HotPlotTargetDrive(
                 target_host_config,
@@ -59,15 +60,16 @@ class PairingState:
         # update state w/ remote target info
         for remote_host_info in self.__targets_info.remote_targets_info.remote_host_infos:
             target_host_config = remote_host_info.remote_host_config
+            target_host_id = TargetHostId.from_(target_host_config)
             for target_drive_info in remote_host_info.target_drive_infos:
                 for in_flight_transfer in target_drive_info.in_flight_transfers:
                     initial_transfers_map[in_flight_transfer.plot_name_metadata.plot_id] = (remote_host_info.remote_host_config, target_drive_info.target_drive_config)
-                    self.__target_host_transfers_in_flight[target_host_config] += 1
-                    target_host_and_drive_configs = (target_host_config, target_drive_info.target_drive_config)
-                    self.__target_drive_bytes_in_flight[target_host_and_drive_configs] += (Constants.PLOT_BYTES_BY_K[in_flight_transfer.plot_name_metadata.k] - in_flight_transfer.current_file_size)
+                    self.__target_host_transfers_in_flight[target_host_id] += 1
+                    target_drive_id = TargetDriveId.from_(target_host_id, target_drive_info.target_drive_config)
+                    self.__target_drive_bytes_in_flight[target_drive_id] += (Constants.PLOT_BYTES_BY_K[in_flight_transfer.plot_name_metadata.k] - in_flight_transfer.current_file_size)
 
                 hot_plot_target_drive = HotPlotTargetDrive(
-                    remote_host_info.remote_host_config,
+                    target_host_config,
                     target_drive_info
                 )
                 self.__all_hot_plot_target_drives.append(hot_plot_target_drive)
@@ -96,10 +98,10 @@ class PairingState:
         self.__source_drive_transfers_in_flight[source_drive_config] += 1
         self.__source_drive_bytes_in_flight[source_drive_config] += hot_plot.source_plot.size
 
-        target_host_config = hot_plot_target_drive.host_config
-        self.__target_host_transfers_in_flight[target_host_config] += 1
+        target_host_id = TargetHostId.from_(hot_plot_target_drive.host_config)
+        self.__target_host_transfers_in_flight[target_host_id] += 1
 
-        target_drive_id = (target_host_config, hot_plot_target_drive.target_drive_info.target_drive_config)
+        target_drive_id = TargetDriveId.from_(target_host_id, hot_plot_target_drive.target_drive_info.target_drive_config)
         self.__target_drive_transfers_in_flight[target_drive_id] += 1
         self.__target_drive_bytes_in_flight[target_drive_id] += hot_plot.source_plot.size
 
@@ -169,24 +171,28 @@ class PairingState:
                 return sorted(eligible_hot_plot_target_drives, key=key_func)
             elif selection_strategy == "drive_with_least_space_remaining":
                 def key_func(hot_plot_target_drive: HotPlotTargetDrive):
-                    return hot_plot_target_drive.target_drive_info.free_bytes - self.__target_drive_bytes_in_flight[(hot_plot_target_drive.host_config, hot_plot_target_drive.target_drive_info.target_drive_config)]
+                    target_drive_id = TargetDriveId.from_(TargetHostId.from_(hot_plot_target_drive.host_config), hot_plot_target_drive.target_drive_info.target_drive_config)
+                    return hot_plot_target_drive.target_drive_info.free_bytes - self.__target_drive_bytes_in_flight[target_drive_id]
                 return sorted(eligible_hot_plot_target_drives, key=key_func)
             elif selection_strategy == "drive_with_most_space_remaining":
                 def key_func(hot_plot_target_drive: HotPlotTargetDrive):
-                    return hot_plot_target_drive.target_drive_info.free_bytes - self.__target_drive_bytes_in_flight[(hot_plot_target_drive.host_config, hot_plot_target_drive.target_drive_info.target_drive_config)]
+                    target_drive_id = TargetDriveId.from_(TargetHostId.from_(hot_plot_target_drive.host_config), hot_plot_target_drive.target_drive_info.target_drive_config)
+                    return hot_plot_target_drive.target_drive_info.free_bytes - self.__target_drive_bytes_in_flight[target_drive_id]
                 return sorted(eligible_hot_plot_target_drives, key=key_func, reverse=True)
             elif selection_strategy == "drive_with_lowest_percent_space_remaining":
                 def key_func(hot_plot_target_drive: HotPlotTargetDrive):
-                    uncommitted_bytes = hot_plot_target_drive.target_drive_info.free_bytes - self.__target_drive_bytes_in_flight[(hot_plot_target_drive.host_config, hot_plot_target_drive.target_drive_info.target_drive_config)]
+                    target_drive_id = TargetDriveId.from_(TargetHostId.from_(hot_plot_target_drive.host_config), hot_plot_target_drive.target_drive_info.target_drive_config)
+                    uncommitted_bytes = hot_plot_target_drive.target_drive_info.free_bytes - self.__target_drive_bytes_in_flight[target_drive_id]
                     return uncommitted_bytes / hot_plot_target_drive.target_drive_info.total_bytes
                 return sorted(eligible_hot_plot_target_drives, key=key_func)
             elif selection_strategy == "drive_with_highest_percent_space_remaining":
                 def key_func(hot_plot_target_drive: HotPlotTargetDrive):
-                    uncommitted_bytes = hot_plot_target_drive.target_drive_info.free_bytes - self.__target_drive_bytes_in_flight[(hot_plot_target_drive.host_config, hot_plot_target_drive.target_drive_info.target_drive_config)]
+                    target_drive_id = TargetDriveId.from_(TargetHostId.from_(hot_plot_target_drive.host_config), hot_plot_target_drive.target_drive_info.target_drive_config)
+                    uncommitted_bytes = hot_plot_target_drive.target_drive_info.free_bytes - self.__target_drive_bytes_in_flight[target_drive_id]
                     return uncommitted_bytes / hot_plot_target_drive.target_drive_info.total_bytes
                 return sorted(eligible_hot_plot_target_drives, key=key_func, reverse=True)
             elif selection_strategy == "random":
-                # TODO: any way to do this pseudo-randomly based on state for repeatable tests?
+                # TODO: any way to do this pseudo-randomly based for repeatable tests?
                 return sorted(eligible_hot_plot_target_drives, key=lambda x: random.random())
 
         naive_ranked_hot_plot_target_drives = naive_rank_hot_plot_target_drives()
@@ -208,20 +214,27 @@ class PairingState:
         The ways that can be frequency capped:
           - max concurrent outbound remote transfers
           - source drive max concurrent outbound transfers
+          - target host max inbound transfers
           - target drive max concurrent inbound transfers
         """
-        max_concurrent_remote_transfers = self.__targets_info.remote_targets_info.remote_target_config.max_concurrent_outbound_transfers
+        max_concurrent_remote_transfers = self.__targets_info.remote_targets_info.remote_targets_config.max_concurrent_outbound_transfers
         if self.__total_remote_transfers_from_source_host >= max_concurrent_remote_transfers:
             return True
 
         source_drive_max_concurrent_outbound_transfers = hot_plot.source_drive_info.source_drive_config.max_concurrent_outbound_transfers
-        if self.__source_drive_transfers_in_flight[
-            hot_plot.source_drive_info.source_drive_config] >= source_drive_max_concurrent_outbound_transfers:
+        if self.__source_drive_transfers_in_flight[hot_plot.source_drive_info.source_drive_config] >= source_drive_max_concurrent_outbound_transfers:
             return True
 
-        target_drive_max_concurrent_inbound_transfers = hot_plot_target_drive.host_config.max_concurrent_inbound_transfers
-        if self.__target_drive_transfers_in_flight[(hot_plot_target_drive.host_config, hot_plot_target_drive.target_drive_info.target_drive_config)] >= target_drive_max_concurrent_inbound_transfers:
+        target_host_max_concurrent_inbound_transfers = hot_plot_target_drive.host_config.max_concurrent_inbound_transfers
+        target_host_id = TargetHostId.from_(hot_plot_target_drive.host_config)
+        if self.__target_host_transfers_in_flight[target_host_id] >= target_host_max_concurrent_inbound_transfers:
             return True
+
+        target_drive_max_concurrent_inbound_transfers = hot_plot_target_drive.target_drive_info.target_drive_config.max_concurrent_inbound_transfers
+        target_drive_id = TargetDriveId.from_(target_host_id, hot_plot_target_drive.target_drive_info.target_drive_config)
+        if self.__target_drive_transfers_in_flight[target_drive_id] >= target_drive_max_concurrent_inbound_transfers:
+            return True
+
 
         return False
 
@@ -229,8 +242,8 @@ class PairingState:
         # Need to check if the target drive has enough space for the hot_plot, while taking into account
         # active transfers (and some fudge factor because our disk space reading and active transfers size reading
         # don't happen at exactly the same time)
-        committed_bytes = (self.__target_drive_bytes_in_flight[(hot_plot_target_drive.host_config,
-                                                                hot_plot_target_drive.target_drive_info.target_drive_config)] * Constants.STAGED_FILES_ERROR_TERM)
+        target_drive_id = TargetDriveId.from_(TargetHostId.from_(hot_plot_target_drive.host_config), hot_plot_target_drive.target_drive_info.target_drive_config)
+        committed_bytes = self.__target_drive_bytes_in_flight[target_drive_id] * Constants.STAGED_FILES_ERROR_TERM
         available_bytes = hot_plot_target_drive.target_drive_info.free_bytes - committed_bytes
         if available_bytes >= hot_plot.source_plot.size:
             return True
@@ -251,7 +264,7 @@ class PairingState:
             self.__target_drive_config_order_lookup[target_drive_config] = i
             i += 1
 
-        for remote_host in self.__targets_info.remote_targets_info.remote_target_config.hosts:
+        for remote_host in self.__targets_info.remote_targets_info.remote_targets_config.hosts:
             for target_drive_config in remote_host.drives:
                 self.__target_drive_config_order_lookup[target_drive_config] = i
                 i += 1

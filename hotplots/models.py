@@ -98,7 +98,7 @@ class RemoteHostInfo:
 
 @dataclass(frozen=True)
 class RemoteTargetsInfo:
-    remote_target_config: RemoteTargetsConfig
+    remote_targets_config: RemoteTargetsConfig
     remote_host_infos: list[RemoteHostInfo]
 
 
@@ -130,3 +130,21 @@ class GetSourceTargetPairingsResult:
     unpaired_hot_plots_due_to_no_space: List[HotPlot]
 
 
+@dataclass(frozen=True)
+class TargetHostId:
+    is_local: bool
+    hostname: str
+
+    @staticmethod
+    def from_(target_host_config: Union[LocalHostConfig, RemoteHostConfig]) -> 'TargetHostId':
+        return TargetHostId(target_host_config.is_local(), target_host_config.get_hostname())
+
+
+@dataclass(frozen=True)
+class TargetDriveId:
+    target_host_id: TargetHostId
+    drive_path: str
+
+    @staticmethod
+    def from_(target_host_id: TargetHostId, target_drive_config: TargetDriveConfig) -> 'TargetDriveId':
+        return TargetDriveId(target_host_id, target_drive_config.path)

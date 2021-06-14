@@ -16,16 +16,14 @@ class TestHelpers:
             day: int,
             hour: int,
             minute: int,
-            plot_id=""
+            plot_id: str = ""
     ) -> SourcePlot:
-        """
-        :param source_config:
-        :return:
-        """
         if not plot_id:
             plot_id = secrets.token_hex(64)
 
-        plot_filename = "plot-k%s-%s-%s-%s-%s-%s-%s.plot" % (str(k), str(year), str(month), str(day), str(hour), str(minute), plot_id)
+        plot_filename = "plot-k%s-%s-%s-%s-%s-%s-%s.plot" % (
+            str(k), str(year), str(month), str(day), str(hour), str(minute), plot_id
+        )
         absolute_reference = os.path.join(source_drive_config.path, plot_filename)
 
         return SourcePlot(
