@@ -197,6 +197,32 @@ class HotplotsIO:
     HOTPLOTS_CONFIG_SCHEMA = desert.schema(HotplotsConfig)
 
     @staticmethod
+    def get_files_with_sizes_in_dir(dir_name: str):
+        # TODO: get generic info / plot-specific info (like creation date)
+        all_files = filter(
+            lambda x: os.path.isfile(x),
+            map(lambda x: os.path.join(dir_name, x), os.listdir(dir_name))
+        )
+        files_with_sizes = [
+            ( os.stat(file_path).st_size, file_path ) 
+            for file_path
+            in all_files
+        ]
+        return files_with_sizes
+    
+    @staticmethod
+    def delete_file(file_path, great_prejudice = False):
+        logging.info("Deleting file " + file_path)
+        if great_prejudice:
+            try:
+                os.remove(file_path)
+                return True
+            except OSError as e:
+                logging.error(e.strerror)
+        return False
+        
+
+    @staticmethod
     def load_config_file(filename) -> HotplotsConfig:
         with open(filename, "r") as config_file:
             config_file_contents = config_file.read()
