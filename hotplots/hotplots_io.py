@@ -13,6 +13,7 @@ from hotplots.models import PlotNameMetadata, InFlightTransfer, SourceDriveInfo,
     SourcePlot, SourceInfo, LocalHostConfig, LocalTargetsInfo, RemoteTargetsConfig, RemoteTargetsInfo, TargetDriveInfo, \
     HotPlotTargetDrive, HotPlot
 
+dry_run = False
 
 class HotplotsIO:
     def __init__(self):
@@ -192,7 +193,8 @@ class HotplotsIO:
             )
 
         logging.info("Running move plot command: %s" % move_plot_cmd)
-        subprocess.Popen(move_plot_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, start_new_session=True)
+        if not dry_run:
+            subprocess.Popen(move_plot_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, start_new_session=True)
 
     HOTPLOTS_CONFIG_SCHEMA = desert.schema(HotplotsConfig)
 
@@ -213,7 +215,7 @@ class HotplotsIO:
     @staticmethod
     def delete_file(file_path, great_prejudice = False):
         logging.info("Deleting file " + file_path)
-        if great_prejudice:
+        if great_prejudice and not dry_run:
             try:
                 os.remove(file_path)
                 return True

@@ -147,8 +147,12 @@ class HotplotsPairingEngine:
                 cur_coldplot_idx += 1
                 continue
 
-            if hot_size > cold_size:
-                # hot plot too big, move on
+            # the excess bytes on the target drive
+            free_bytes = target_drive.target_drive_info.free_bytes
+
+            if hot_size > cold_size + free_bytes:
+                # hot plot too big to fit if we remove the cold plot,
+                # even given the free_bytes, move on
                 # TODO: mark as unprocesed_due_to_too_big for later
                 cur_hotplot_idx += 1
                 continue
@@ -157,7 +161,7 @@ class HotplotsPairingEngine:
             # print("Would've deleted ", cold_path)
             # print("Committing pairing: ", (hot_path, target_path))
             # print("")
-            HotplotsIO.delete_file(cold_path, False)
+            HotplotsIO.delete_file(cold_path, True)
             pairings.append((hot_plot_ref, target_drive))
         
             cur_hotplot_idx += 1
