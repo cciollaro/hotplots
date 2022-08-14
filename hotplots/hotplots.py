@@ -31,16 +31,22 @@ class Hotplots:
         )
 
         pairings_result = HotplotsPairingEngine.get_pairings_result(source_info, targets_info)
+
+        if isinstance(pairings_result, PlotReplacementResult):
+            # not an eligible pairing, but we can try to replace plots
+            # if successful, will update pairings_request with an eligible pairing
+            logging.info("Let's try plot replacement for local drives")
+            pairings_result = HotplotsPairingEngine.get_pairings_result_with_replacement(pairings_result)
+
         if isinstance(pairings_result, EligiblePairingsResult):
             [
                 self.hotplots_io.transfer_plot(hot_plot, hot_plot_target_drive)
                 for (hot_plot, hot_plot_target_drive)
                 in pairings_result.pairings
             ]
-        elif isinstance(pairings_result, PlotReplacementResult):
-            # TODO plot replacement
-            pass
-        else:  # no action
+        else:
+            # no action, we could arrive here by a capping ineligility or a failed replacement
+            logging.info("No action available to take at this time.")
             return
 
 

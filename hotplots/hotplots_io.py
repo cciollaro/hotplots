@@ -13,6 +13,7 @@ from hotplots.models import PlotNameMetadata, InFlightTransfer, SourceDriveInfo,
     SourcePlot, SourceInfo, LocalHostConfig, LocalTargetsInfo, RemoteTargetsConfig, RemoteTargetsInfo, TargetDriveInfo, \
     HotPlotTargetDrive, HotPlot
 
+dry_run = False
 
 class HotplotsIO:
     def __init__(self):
@@ -192,9 +193,36 @@ class HotplotsIO:
             )
 
         logging.info("Running move plot command: %s" % move_plot_cmd)
-        subprocess.Popen(move_plot_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, start_new_session=True)
+        if not dry_run:
+            subprocess.Popen(move_plot_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, start_new_session=True)
 
     HOTPLOTS_CONFIG_SCHEMA = desert.schema(HotplotsConfig)
+
+    @staticmethod
+    def get_files_with_sizes_in_dir(dir_name: str):
+        # TODO: get generic info / plot-specific info (like creation date)
+        all_files = filter(
+            lambda x: os.path.isfile(x),
+            map(lambda x: os.path.join(dir_name, x), os.listdir(dir_name))
+        )
+        files_with_sizes = [
+            ( os.stat(file_path).st_size, file_path ) 
+            for file_path
+            in all_files
+        ]
+        return files_with_sizes
+    
+    @staticmethod
+    def delete_file(file_path, great_prejudice = False):
+        logging.info("Deleting file " + file_path)
+        if great_prejudice and not dry_run:
+            try:
+                os.remove(file_path)
+                return True
+            except OSError as e:
+                logging.error(e.strerror)
+        return False
+        
 
     @staticmethod
     def load_config_file(filename) -> HotplotsConfig:
