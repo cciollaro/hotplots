@@ -25,16 +25,23 @@ git clone https://github.com/cciollaro/hotplots.git
 cd hotplots
 ```
 
-2. Run the install script. This will create a virtual environment and install the required dependencies.
+2. Create a virtual environment and activate it.
 
 ```
-./install.sh
-```
-
-3. Activate the virtual environment.
-
-```
+python3 -m venv venv
 . ./venv/bin/activate
+```
+
+3. Install the project in editable mode.
+
+```
+pip install -e .
+```
+
+Note: On Debian-based systems, you may need to install some system-level dependencies first:
+```
+sudo apt-get update
+sudo apt-get install libpython3-dev build-essential -y
 ```
 
 4. Copy the example config file
@@ -55,7 +62,7 @@ python3 -m unittest discover -s hotplots/_test -p "*_test.py"
 
 ## Running in the background
 You can use `tmux` (or `screen` if that's your preference, although I don't cover that here) to run hotplots in the background. 
-The way I do this is via `tmux new -s hotplots` and then run `./start.sh` from inside the virtual terminal. You can detach with `Ctrl+b d`. 
+The way I do this is via `tmux new -s hotplots` and then run `hotplots` from inside the virtual terminal. You can detach with `Ctrl+b d`.
 You can view active tmux sessions with `tmux ls` and lastly you can re-attach with `tmux a -t hotplots`.
 
 ## Viewing active file transfers

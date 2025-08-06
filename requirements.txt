@@ -1,7 +1,0 @@
-# working versions discovered via `pip freeze`
-chia-blockchain
-PyYAML
-paramiko
-psutil
-desert
-marshmallow

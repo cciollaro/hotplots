@@ -5,11 +5,7 @@ from hotplots.hotplots_io import HotplotsIO
 from hotplots.hotplots import Hotplots
 from hotplots.hotplots_logging import HotplotsLogging
 
-# TODO `verify` command that just tests touching and deleting a small file to each destination and outputs results
-#   checks if rsync is installed
-#   checks if progress is installed
-#   could even run it on startup (conditionally)
-if __name__ == '__main__':
+def main():
     hotplots_io = HotplotsIO()
 
     # TODO get config filename from commandline args
@@ -26,3 +22,6 @@ if __name__ == '__main__':
 
         logging.info("sleeping %s seconds" % config.source.check_source_drives_sleep_seconds)
         time.sleep(config.source.check_source_drives_sleep_seconds)
+
+if __name__ == '__main__':
+    main()

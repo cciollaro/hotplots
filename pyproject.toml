@@ -1,2 +1,18 @@
+[project]
+name = "hotplots"
+version = "0.1.0"
+description = "A Chia plots archiving program."
+dependencies = [
+    "chia-blockchain",
+    "PyYAML",
+    "paramiko",
+    "psutil",
+    "desert",
+    "marshmallow",
+]
+
+[project.scripts]
+hotplots = "hotplots.main:main"
+
 [tool.black]
 line-length = 120
