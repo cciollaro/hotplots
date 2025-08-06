@@ -18,8 +18,6 @@ an eligible target disk.
 
 ## Installation
 
-_For updating from previous version, see section below._
-
 1. Clone the repository
 
 ```
@@ -27,35 +25,33 @@ git clone https://github.com/cciollaro/hotplots.git
 cd hotplots
 ```
 
-2. Run the install script.
+2. Run the install script. This will create a virtual environment and install the required dependencies.
 
 ```
 ./install.sh
 ```
 
-3. Copy the example config file
+3. Activate the virtual environment.
+
+```
+. ./venv/bin/activate
+```
+
+4. Copy the example config file
 
 ```
 cp config-example.yaml config.yaml
 ```
 
-4. Open up `config.yaml` in your editor and configure it to your preferences.
+5. Open up `config.yaml` in your editor and configure it to your preferences.
 
-## Updating to the latest release
+## Testing
 
-_Skip this if you followed the above section_.
+To run the tests, first activate the virtual environment, then run the following command:
 
 ```
-cd hotplots
-
-git fetch
-git checkout main
-git pull
-
-./install.sh
+python3 -m unittest discover -s hotplots/_test -p "*_test.py"
 ```
-
-> Important: Automated migration of config is not supported. Please check that your `config.yaml` has all new fields introduced in `config-example.yaml` and add anything missing. If correctly migrated, you shouldn't get any ERROR logs.
 
 ## Running in the background
 You can use `tmux` (or `screen` if that's your preference, although I don't cover that here) to run hotplots in the background. 
