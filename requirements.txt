@@ -1,7 +1,7 @@
 # working versions discovered via `pip freeze`
-chia-blockchain==1.1.6
-PyYAML==5.4.1
-paramiko==2.7.2
-psutil==5.8.0
+chia-blockchain
+PyYAML
+paramiko
+psutil
 desert
 marshmallow
