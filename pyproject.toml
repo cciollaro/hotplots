@@ -14,5 +14,14 @@ dependencies = [
 [project.scripts]
 hotplots = "hotplots.main:main"
 
+[project.optional-dependencies]
+dev = [
+    "coverage",
+    "pytest",
+]
+
 [tool.black]
 line-length = 120
+
+[tool.coverage.run]
+source = ["hotplots"]
