@@ -1,4 +1,4 @@
-# WIP - Hotplots - Chia Plots Archiving Program
+# Hotplots - Chia Plots Archiving Program
 
 [![Python CI](https://github.com/cciollaro/hotplots/actions/workflows/ci.yml/badge.svg)](https://github.com/cciollaro/hotplots/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/cciollaro/hotplots/branch/main/graph/badge.svg)](https://codecov.io/gh/cciollaro/hotplots)
@@ -7,10 +7,7 @@ Hotplots is an extensible, flexible, and well-tested chia plot archiving program
 
 Hotplots can be used to fill up all of your existing drives, and then if configured to do so, it can start replacing plots, for example replacing non-portable (pool) plots with newer portable plots. It can also replace based on the k-value of your plots, should there ever be a time when you want to or need to upgrade to k=33. 
 
-TODO: put links to sections here
-
 ## Overview
-TODO: image showing local, remotes, drives.
 
 Hotplots moves your plots from a local `source` disk to an eligible `target` disk.
 `targets` are either local (attached to the same machine that hotplots is running on) or remote (accesible through ssh from the machine hotplots is running on).
