@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 import socket
 import subprocess
 from glob import glob
@@ -42,11 +43,9 @@ class HotplotsIO:
                 source_plots.append(source_plot)
 
             # find out how much space is available on the drive
-            free_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $4}'" % source_drive_config.path
-            free_bytes = int(os.popen(free_1k_blocks_cmd).read().rstrip()) * 1000
-
-            total_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $2}'" % source_drive_config.path
-            total_bytes = int(os.popen(total_1k_blocks_cmd).read().rstrip()) * 1000
+            usage = shutil.disk_usage(source_drive_config.path)
+            free_bytes = usage.free
+            total_bytes = usage.total
 
             source_drive_info = SourceDriveInfo(
                 source_drive_config,
@@ -66,12 +65,10 @@ class HotplotsIO:
 
         target_disk_infos = []
         for target_drive_config in local_target_config.drives:
-            free_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $4}'" % target_drive_config.path
-            total_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $2}'" % target_drive_config.path
+            usage = shutil.disk_usage(target_drive_config.path)
+            free_bytes = usage.free
+            total_bytes = usage.total
             in_flight_transfers_cmd = "find %s -name '.*.plot.*'" % target_drive_config.path
-
-            free_bytes = int(os.popen(free_1k_blocks_cmd).read().rstrip()) * 1000
-            total_bytes = int(os.popen(total_1k_blocks_cmd).read().rstrip()) * 1000
 
             in_flight_transfers_str = os.popen(in_flight_transfers_cmd).read().rstrip()
             if len(in_flight_transfers_str) == 0:
@@ -194,7 +191,7 @@ class HotplotsIO:
 
         logging.info("Running move plot command: %s" % move_plot_cmd)
         if not dry_run:
-            subprocess.Popen(move_plot_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, start_new_session=True)
+            subprocess.run(move_plot_cmd, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
     HOTPLOTS_CONFIG_SCHEMA = desert.schema(HotplotsConfig)
 

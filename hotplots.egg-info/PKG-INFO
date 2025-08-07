@@ -8,3 +8,6 @@ Requires-Dist: paramiko
 Requires-Dist: psutil
 Requires-Dist: desert
 Requires-Dist: marshmallow
+Provides-Extra: dev
+Requires-Dist: coverage; extra == "dev"
+Requires-Dist: pytest; extra == "dev"

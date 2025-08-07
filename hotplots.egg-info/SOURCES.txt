@@ -19,3 +19,4 @@ hotplots.egg-info/top_level.txt
 hotplots/_test/hotplots_pairing_engine_test.py
 hotplots/_test/helpers/test_helpers.py
 hotplots/_test/integration/hotplots_integration_test.py
+hotplots/_test/integration/integration_test_helpers.py

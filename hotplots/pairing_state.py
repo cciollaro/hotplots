@@ -245,11 +245,11 @@ class PairingState:
         for source_drive_config in self.__source_info.source_config.drives:
             self.__source_drive_config_order_lookup[source_drive_config] = len(self.__source_drive_config_order_lookup)
 
-        def initialize_remote_config_order_lookups():
+        def initialize_local_config_order_lookups():
             for target_drive_config in self.__targets_info.local_targets_info.local_host_config.drives:
                 self.__target_drive_config_order_lookup[target_drive_config] = len(self.__target_drive_config_order_lookup)
 
-        def initialize_local_config_order_lookups():
+        def initialize_remote_config_order_lookups():
             for remote_host in self.__targets_info.remote_targets_info.remote_targets_config.hosts:
                 for target_drive_config in remote_host.drives:
                     self.__target_drive_config_order_lookup[target_drive_config] = len(self.__target_drive_config_order_lookup)

@@ -18,7 +18,7 @@ class HotplotsIntegrationTestBase(unittest.TestCase):
     def tearDown(self):
         self.temp_dir.cleanup()
 
-    def create_dummy_plot(self, filename, size_gb=100):
+    def create_dummy_plot(self, filename, size_gb=1):
         plot_path = self.source_path / filename
         with open(plot_path, "w") as f:
             f.write("dummy plot data")
@@ -28,7 +28,7 @@ class HotplotsIntegrationTestBase(unittest.TestCase):
         os.truncate(plot_path, size_gb * 1024 * 1024 * 1024)
         return plot_path
 
-    def create_dummy_plot_in_target(self, filename, size_gb=100):
+    def create_dummy_plot_in_target(self, filename, size_gb=1):
         plot_path = self.target_path / filename
         with open(plot_path, "w") as f:
             f.write("dummy plot data")

@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from typing import List, Tuple
 from collections import defaultdict
+from datetime import datetime
 
-from hotplots.models import SourceInfo, TargetsInfo, HotPlot, HotPlotTargetDrive
+from hotplots.models import SourceInfo, TargetsInfo, HotPlot, HotPlotTargetDrive, PlotNameMetadata
 from hotplots.pairing_state import PairingState
 from hotplots.hotplots_io import HotplotsIO
 
@@ -94,7 +95,32 @@ class HotplotsPairingEngine:
 
                 capping_limits[target_path] = config.max_concurrent_inbound_transfers
 
-                if strategy == "from-directory":
+                if strategy == "timestamp-before":
+                    contents = HotplotsIO.get_files_with_sizes_in_dir(target_path)
+
+                    try:
+                        replacement_date = datetime.strptime(value, "%Y-%m-%d").date()
+                    except ValueError:
+                        print("Bad config for " + target_path + ", timestamp-before replacement value " + value + " is not a valid date")
+                        continue
+
+                    deleteable_files = []
+                    for size, file_path in contents:
+                        if not file_path.endswith(".plot"):
+                            continue
+
+                        try:
+                            metadata = PlotNameMetadata.parse_from_filename(file_path)
+                            plot_date = datetime(metadata.year, metadata.month, metadata.day).date()
+                            if plot_date < replacement_date:
+                                deleteable_files.append((size, file_path, target_path, target))
+                        except ValueError:
+                            # couldn't parse filename, so we can't determine timestamp, skip
+                            continue
+
+                    if len(deleteable_files) > 0:
+                        all_deleteable_files += deleteable_files
+                elif strategy == "from-directory":
                     # confirm that we have the same base dir (doesn't necessarily mean we're on the
                     # same drive for a bad config, but it helps foot-shooting)
                     if not (value.startswith(target_path) or target_path.startswith(value)):
@@ -112,7 +138,7 @@ class HotplotsPairingEngine:
                     if len(deleteable_files) > 0:
                         all_deleteable_files += deleteable_files
                 
-                # TODO: other strategies, time-before, public-key, legacy-plot
+                # TODO: other strategies, public-key, legacy-plot
 
         # a mixed drive-list of all deleteable files, sorted by filesize
         coldplots = sorted(all_deleteable_files, reverse=True)
