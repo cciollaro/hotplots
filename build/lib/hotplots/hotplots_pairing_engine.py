@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 from typing import List, Tuple
 from collections import defaultdict
-from datetime import datetime
 
-from hotplots.models import SourceInfo, TargetsInfo, HotPlot, HotPlotTargetDrive, PlotNameMetadata
+from hotplots.models import SourceInfo, TargetsInfo, HotPlot, HotPlotTargetDrive
 from hotplots.pairing_state import PairingState
 from hotplots.hotplots_io import HotplotsIO
 
@@ -95,32 +94,7 @@ class HotplotsPairingEngine:
 
                 capping_limits[target_path] = config.max_concurrent_inbound_transfers
 
-                if strategy == "timestamp-before":
-                    contents = HotplotsIO.get_files_with_sizes_in_dir(target_path)
-
-                    try:
-                        replacement_date = datetime.strptime(value, "%Y-%m-%d").date()
-                    except ValueError:
-                        print("Bad config for " + target_path + ", timestamp-before replacement value " + value + " is not a valid date")
-                        continue
-
-                    deleteable_files = []
-                    for size, file_path in contents:
-                        if not file_path.endswith(".plot"):
-                            continue
-
-                        try:
-                            metadata = PlotNameMetadata.parse_from_filename(file_path)
-                            plot_date = datetime(metadata.year, metadata.month, metadata.day).date()
-                            if plot_date < replacement_date:
-                                deleteable_files.append((size, file_path, target_path, target))
-                        except ValueError:
-                            # couldn't parse filename, so we can't determine timestamp, skip
-                            continue
-
-                    if len(deleteable_files) > 0:
-                        all_deleteable_files += deleteable_files
-                elif strategy == "from-directory":
+                if strategy == "from-directory":
                     # confirm that we have the same base dir (doesn't necessarily mean we're on the
                     # same drive for a bad config, but it helps foot-shooting)
                     if not (value.startswith(target_path) or target_path.startswith(value)):
@@ -132,17 +106,17 @@ class HotplotsPairingEngine:
                     # TODO: treat deleteable files as real plot references?
                     # buuut we do also want to handle junk/incomplete plot deletion too probably
                     deleteable_files = list(map(lambda x: (x[0], x[1], target_path, target), filter(lambda x: x[1].endswith(".plot"), sorted_contents)))
-                    
+
                     # now our list is sorted by largest file sizes, and only files that end in *.plot, we can mark to delete with great prejudice
 
                     if len(deleteable_files) > 0:
                         all_deleteable_files += deleteable_files
-                
-                # TODO: other strategies, public-key, legacy-plot
+
+                # TODO: other strategies, time-before, public-key, legacy-plot
 
         # a mixed drive-list of all deleteable files, sorted by filesize
         coldplots = sorted(all_deleteable_files, reverse=True)
-        
+
         # sort our hot plots by their largest filesizes
         hotplots = sorted([
             (hotplot.source_plot.size, hotplot.source_plot.absolute_reference, hotplot)
@@ -152,7 +126,7 @@ class HotplotsPairingEngine:
 
         capping_counts = defaultdict(int)
         # Question: do we need to check in-flight transfers here? Or will that be handled automatically from the previous pairing call
-        
+
         # A greedy algorithm that will just try to pair up the biggest hot plots
         # with the biggest "cold" plots. If the capping for the current cold plot's drive
         # is met, or the hot plot doesn't fit, will move onto the next cold/hot plot
@@ -189,7 +163,7 @@ class HotplotsPairingEngine:
             # print("")
             HotplotsIO.delete_file(cold_path, True)
             pairings.append((hot_plot_ref, target_drive))
-        
+
             cur_hotplot_idx += 1
             cur_coldplot_idx += 1
 

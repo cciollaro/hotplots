@@ -34,11 +34,11 @@ class PlotNameMetadata:
 
         return PlotNameMetadata(
             int(k_str.strip("k")),
-            int(year),
-            int(month),
-            int(day),
-            int(hour),
-            int(minute),
+            year,
+            month,
+            day,
+            hour,
+            minute,
             plot_id
         )
 

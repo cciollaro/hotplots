@@ -1,6 +1,5 @@
 import logging
 import os
-import shutil
 import socket
 import subprocess
 from glob import glob
@@ -43,9 +42,11 @@ class HotplotsIO:
                 source_plots.append(source_plot)
 
             # find out how much space is available on the drive
-            usage = shutil.disk_usage(source_drive_config.path)
-            free_bytes = usage.free
-            total_bytes = usage.total
+            free_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $4}'" % source_drive_config.path
+            free_bytes = int(os.popen(free_1k_blocks_cmd).read().rstrip()) * 1000
+
+            total_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $2}'" % source_drive_config.path
+            total_bytes = int(os.popen(total_1k_blocks_cmd).read().rstrip()) * 1000
 
             source_drive_info = SourceDriveInfo(
                 source_drive_config,
@@ -65,10 +66,12 @@ class HotplotsIO:
 
         target_disk_infos = []
         for target_drive_config in local_target_config.drives:
-            usage = shutil.disk_usage(target_drive_config.path)
-            free_bytes = usage.free
-            total_bytes = usage.total
+            free_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $4}'" % target_drive_config.path
+            total_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $2}'" % target_drive_config.path
             in_flight_transfers_cmd = "find %s -name '.*.plot.*'" % target_drive_config.path
+
+            free_bytes = int(os.popen(free_1k_blocks_cmd).read().rstrip()) * 1000
+            total_bytes = int(os.popen(total_1k_blocks_cmd).read().rstrip()) * 1000
 
             in_flight_transfers_str = os.popen(in_flight_transfers_cmd).read().rstrip()
             if len(in_flight_transfers_str) == 0:
@@ -191,7 +194,7 @@ class HotplotsIO:
 
         logging.info("Running move plot command: %s" % move_plot_cmd)
         if not dry_run:
-            subprocess.run(move_plot_cmd, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+            subprocess.Popen(move_plot_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, start_new_session=True)
 
     HOTPLOTS_CONFIG_SCHEMA = desert.schema(HotplotsConfig)
 
@@ -203,12 +206,12 @@ class HotplotsIO:
             map(lambda x: os.path.join(dir_name, x), os.listdir(dir_name))
         )
         files_with_sizes = [
-            ( os.stat(file_path).st_size, file_path ) 
+            ( os.stat(file_path).st_size, file_path )
             for file_path
             in all_files
         ]
         return files_with_sizes
-    
+
     @staticmethod
     def delete_file(file_path, great_prejudice = False):
         logging.info("Deleting file " + file_path)
@@ -219,7 +222,7 @@ class HotplotsIO:
             except OSError as e:
                 logging.error(e.strerror)
         return False
-        
+
 
     @staticmethod
     def load_config_file(filename) -> HotplotsConfig:

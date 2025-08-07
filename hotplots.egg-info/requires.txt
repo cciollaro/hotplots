@@ -4,3 +4,7 @@ paramiko
 psutil
 desert
 marshmallow
+
+[dev]
+coverage
+pytest
