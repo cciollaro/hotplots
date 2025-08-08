@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  unit-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,7 +25,7 @@ jobs:
 
     - name: Test with pytest
       run: |
-        coverage run -m pytest
+        PYTHONPATH=. coverage run -m pytest -k "not DockerIntegrationTest"
         coverage xml
 
     - name: Upload coverage to Codecov
@@ -33,3 +33,28 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: unit-test
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Build and run the containers
+      run: docker-compose up -d --build
+
+    - name: Wait for services to be ready
+      run: |
+        echo "Waiting for sshd to be ready..."
+        # The sshd container can take a moment to start up and accept connections
+        sleep 10
+
+    - name: Run integration tests
+      run: >
+        docker-compose exec -T hotplots
+        python -m pytest hotplots/_test/integration/docker_integration_test.py
+
+    - name: Tear down the containers
+      if: always()
+      run: docker-compose down
