@@ -69,19 +69,17 @@ class HotplotsIO:
             usage = shutil.disk_usage(target_drive_config.path)
             free_bytes = usage.free
             total_bytes = usage.total
-            in_flight_transfers_cmd = "find %s -name '.*.plot.*'" % target_drive_config.path
 
-            in_flight_transfers_str = os.popen(in_flight_transfers_cmd).read().rstrip()
-            if len(in_flight_transfers_str) == 0:
-                in_flight_transfer_filenames = []
-            else:
-                in_flight_transfer_filenames = in_flight_transfers_str.split("\n")
+            in_flight_transfer_filenames = [
+                f for f in os.listdir(target_drive_config.path)
+                if f.startswith('.') and '.plot' in f and os.path.isfile(os.path.join(target_drive_config.path, f))
+            ]
 
             in_flight_transfers = []
             for in_flight_transfer_filename in in_flight_transfer_filenames:
-                in_flight_transfer_absolute_reference = os.path.join(target_drive_config.path, in_flight_transfer_filename)
-                file_size_cmd = "stat -c%s " + in_flight_transfer_absolute_reference
-                current_file_size = int(os.popen(file_size_cmd).read().rstrip())
+                in_flight_transfer_absolute_reference = os.path.join(target_drive_config.path,
+                                                                       in_flight_transfer_filename)
+                current_file_size = os.path.getsize(in_flight_transfer_absolute_reference)
                 in_flight_transfer = InFlightTransfer(
                     in_flight_transfer_filename,
                     current_file_size,
@@ -120,32 +118,29 @@ class HotplotsIO:
                 username=remote_host_config.username
             )
 
+            sftp = client.open_sftp()
             target_drive_infos = []
             for target_drive_config in remote_host_config.drives:
-                free_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $4}'" % target_drive_config.path
-                total_1k_blocks_cmd = "df %s | tail -n 1 | awk '{print $2}'" % target_drive_config.path
-                in_flight_transfers_cmd = "find %s -name '.*.plot.*'" % target_drive_config.path
+                stats = sftp.statvfs(target_drive_config.path)
+                free_bytes = stats.f_bavail * stats.f_frsize
+                total_bytes = stats.f_blocks * stats.f_frsize
 
-                _, free_1k_blocks_stdout, _ = client.exec_command(free_1k_blocks_cmd)
-                free_bytes = int(free_1k_blocks_stdout.read().decode("utf-8").rstrip()) * 1000
-
-                _, total_1k_blocks_stdout, _ = client.exec_command(total_1k_blocks_cmd)
-                total_bytes = int(total_1k_blocks_stdout.read().decode("utf-8").rstrip()) * 1000
-
-
-                _, in_flight_transfers_stdout, _ = client.exec_command(in_flight_transfers_cmd)
-                in_flight_transfers_str = in_flight_transfers_stdout.read().decode("utf-8").rstrip()
-                if len(in_flight_transfers_str) == 0:
-                    in_flight_transfer_filenames = []
-                else:
-                    in_flight_transfer_filenames = in_flight_transfers_str.split("\n")
+                in_flight_transfer_filenames = []
+                for filename in sftp.listdir(target_drive_config.path):
+                    if filename.startswith('.') and '.plot' in filename:
+                        filepath = os.path.join(target_drive_config.path, filename)
+                        try:
+                            if sftp.stat(filepath).st_mode & 0o100000:  # S_ISREG
+                                in_flight_transfer_filenames.append(filename)
+                        except FileNotFoundError:
+                            # File might have been deleted between listdir and stat
+                            pass
 
                 in_flight_transfers = []
                 for in_flight_transfer_filename in in_flight_transfer_filenames:
-                    in_flight_transfer_absolute_reference = os.path.join(target_drive_config.path, in_flight_transfer_filename)
-                    file_size_cmd = "stat -c%s " + in_flight_transfer_absolute_reference
-                    _, current_file_size_stdout, _ = client.exec_command(file_size_cmd)
-                    current_file_size = int(current_file_size_stdout.read().decode("utf-8").rstrip())
+                    in_flight_transfer_absolute_reference = os.path.join(target_drive_config.path,
+                                                                           in_flight_transfer_filename)
+                    current_file_size = sftp.stat(in_flight_transfer_absolute_reference).st_size
                     in_flight_transfer = InFlightTransfer(
                         in_flight_transfer_filename,
                         current_file_size,
@@ -161,6 +156,7 @@ class HotplotsIO:
                 )
                 target_drive_infos.append(target_drive_info)
 
+            sftp.close()
             client.close()
 
             remote_host_info = RemoteHostInfo(
