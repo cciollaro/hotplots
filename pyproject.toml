@@ -24,3 +24,6 @@ line-length = 120
 
 [tool.coverage.run]
 source = ["hotplots"]
+
+[tool.setuptools.packages.find]
+include = ["hotplots*"]
