@@ -1,8 +1,9 @@
 import logging
 import os
+import random
 import shutil
 import socket
-import subprocess
+import string
 from glob import glob
 
 import desert
@@ -175,23 +176,74 @@ class HotplotsIO:
         )
 
     def transfer_plot(self, hot_plot: HotPlot, hot_plot_target_drive: HotPlotTargetDrive):
-        if hot_plot_target_drive.host_config.is_local():
-            move_plot_cmd = "rsync -av --remove-source-files %s %s" % (
-                hot_plot.source_plot.absolute_reference,
-                hot_plot_target_drive.target_drive_info.target_drive_config.path
-            )
-        else:
-            resolved_ip = socket.gethostbyname(hot_plot_target_drive.host_config.hostname)
-            move_plot_cmd = "rsync -av --remove-source-files -e ssh %s %s@%s:%s" % (
-                hot_plot.source_plot.absolute_reference,
-                hot_plot_target_drive.host_config.username,
-                resolved_ip,
-                hot_plot_target_drive.target_drive_info.target_drive_config.path
-            )
+        source_path = hot_plot.source_plot.absolute_reference
+        dest_dir = hot_plot_target_drive.target_drive_info.target_drive_config.path
+        source_basename = os.path.basename(source_path)
+        final_dest_path = os.path.join(dest_dir, source_basename)
 
-        logging.info("Running move plot command: %s" % move_plot_cmd)
-        if not dry_run:
-            subprocess.run(move_plot_cmd, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+        if hot_plot_target_drive.host_config.is_local():
+            logging.info(f"Starting local transfer of {source_path} to {dest_dir}")
+            if not dry_run:
+                # Create a temporary file name
+                random_suffix = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
+                temp_dest_path = os.path.join(dest_dir, f".{source_basename}.{random_suffix}")
+
+                try:
+                    logging.info(f"Copying to temporary file: {temp_dest_path}")
+                    shutil.copy2(source_path, temp_dest_path)
+                    logging.info(f"Renaming temporary file to final destination: {final_dest_path}")
+                    os.rename(temp_dest_path, final_dest_path)
+                    logging.info(f"Removing source file: {source_path}")
+                    os.remove(source_path)
+                    logging.info(f"Successfully transferred {source_path} to {final_dest_path}")
+                except Exception as e:
+                    logging.error(f"Error during local transfer: {e}")
+                    # cleanup partial file if it exists
+                    if os.path.exists(temp_dest_path):
+                        os.remove(temp_dest_path)
+                    raise
+        else:
+            logging.info(f"Starting remote transfer of {source_path} to {hot_plot_target_drive.host_config.hostname}:{dest_dir}")
+            if not dry_run:
+                client = paramiko.SSHClient()
+                client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                resolved_ip = socket.gethostbyname(hot_plot_target_drive.host_config.hostname)
+                sftp = None
+                try:
+                    client.connect(
+                        resolved_ip,
+                        port=hot_plot_target_drive.host_config.port,
+                        username=hot_plot_target_drive.host_config.username
+                    )
+
+                    sftp = client.open_sftp()
+
+                    # Create a temporary file name
+                    random_suffix = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
+                    remote_temp_dest_path = os.path.join(dest_dir, f".{source_basename}.{random_suffix}")
+                    remote_final_dest_path = os.path.join(dest_dir, source_basename)
+
+                    logging.info(f"Uploading to temporary file: {remote_temp_dest_path}")
+                    sftp.put(source_path, remote_temp_dest_path)
+                    logging.info(f"Renaming remote temporary file to final destination: {remote_final_dest_path}")
+                    sftp.rename(remote_temp_dest_path, remote_final_dest_path)
+                    logging.info(f"Removing source file: {source_path}")
+                    os.remove(source_path)
+                    logging.info(f"Successfully transferred {source_path} to {hot_plot_target_drive.host_config.hostname}:{remote_final_dest_path}")
+
+                except Exception as e:
+                    logging.error(f"Error during remote transfer: {e}")
+                    # Attempt to clean up remote temp file
+                    if sftp:
+                        try:
+                            sftp.remove(remote_temp_dest_path)
+                        except Exception as cleanup_e:
+                            logging.error(f"Failed to cleanup remote temp file {remote_temp_dest_path}: {cleanup_e}")
+                    raise
+                finally:
+                    if sftp:
+                        sftp.close()
+                    client.close()
 
     HOTPLOTS_CONFIG_SCHEMA = desert.schema(HotplotsConfig)
 
