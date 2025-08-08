@@ -18,9 +18,6 @@ jobs:
       with:
         python-version: 3.9
 
-    - name: Install rsync
-      run: sudo apt-get update && sudo apt-get install -y rsync
-
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
