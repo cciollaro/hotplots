@@ -6,7 +6,6 @@ dependencies = [
     "chia-blockchain",
     "PyYAML",
     "paramiko",
-    "psutil",
     "desert",
     "marshmallow",
 ]
