@@ -6,7 +6,7 @@ RUN apk --no-cache add openssh \
     && sed -i 's/^#?ChallengeResponseAuthentication.*/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config \
     && ssh-keygen -A
 
-RUN adduser -D -s /bin/bash sshuser \
+RUN adduser -D -s /bin/sh sshuser \
     && echo "sshuser:password" | chpasswd
 
 RUN mkdir -p /home/sshuser/.ssh \
