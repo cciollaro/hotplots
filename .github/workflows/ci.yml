@@ -42,7 +42,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Build and run the containers
-      run: docker-compose up -d --build
+      run: docker compose up -d --build
 
     - name: Wait for services to be ready
       run: |
@@ -52,9 +52,9 @@ jobs:
 
     - name: Run integration tests
       run: >
-        docker-compose exec -T hotplots
+        docker compose exec -T hotplots
         python -m pytest hotplots/_test/integration/docker_integration_test.py
 
     - name: Tear down the containers
       if: always()
-      run: docker-compose down
+      run: docker compose down
