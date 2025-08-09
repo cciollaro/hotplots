@@ -98,10 +98,11 @@ class DockerIntegrationTest(HotplotsIntegrationTestBase):
                     "max_concurrent_outbound_transfers": 1,
                     "hosts": [
                         {
-                            "address": self.ssh_host,
+                            "hostname": self.ssh_host,
                             "port": self.ssh_port,
                             "username": self.ssh_user,
                             "key_path": str(self.ssh_key_path),
+                            "max_concurrent_inbound_transfers": 1,
                             "drives": [
                                 {
                                     "path": str(self.target_path_on_remote),
