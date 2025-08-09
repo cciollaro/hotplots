@@ -19,9 +19,10 @@ class DockerIntegrationTest(HotplotsIntegrationTestBase):
         self.ssh_user = "sshuser"
         # This password is for the initial setup. The test will use key-based auth.
         self.ssh_password = "password"
-
-        # Paths within the container
-        self.source_path = Path("/usr/src/app/source")
+        # Paths within the containers
+        # Use the temporary source directory from the base class so the source
+        # plots are not automatically visible on the remote host. The remote
+        # host stores plots in its own target directory.
         self.target_path_on_remote = Path("/home/sshuser/target")
 
         # Clean up previous test runs
@@ -74,7 +75,7 @@ class DockerIntegrationTest(HotplotsIntegrationTestBase):
 
     def test_remote_move(self):
         plot_filename = "plot-k32-2021-06-01-00-00-dummyid.plot"
-        # Create the dummy plot in the shared source volume
+        # Create the dummy plot in the local source directory
         local_source_path = self.source_path / plot_filename
         with open(local_source_path, "w") as f:
             f.write("dummy plot data")
