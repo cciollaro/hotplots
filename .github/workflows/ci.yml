@@ -48,7 +48,7 @@ jobs:
       run: |
         echo "Waiting for sshd to be ready..."
         # The sshd container can take a moment to start up and accept connections
-        sleep 10
+        sleep 20
 
     - name: Run integration tests
       run: >
