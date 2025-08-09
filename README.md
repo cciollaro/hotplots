@@ -54,11 +54,33 @@ cp config-example.yaml config.yaml
 
 ## Testing
 
-To run the tests, first activate the virtual environment, then run the following command:
+To run the unit tests, first activate the virtual environment, then run the following command:
 
 ```
 pytest
 ```
+
+### Integration Testing with Docker
+
+This project includes a Docker-based integration test suite that verifies the remote transfer functionality using a real SSH server. To run these tests, you need to have Docker and Docker Compose installed.
+
+1.  **Build and start the containers:**
+
+    ```bash
+    docker-compose up -d --build
+    ```
+
+2.  **Run the integration tests:**
+
+    ```bash
+    docker-compose exec hotplots pytest hotplots/_test/integration/docker_integration_test.py
+    ```
+
+3.  **Tear down the containers when you're done:**
+
+    ```bash
+    docker-compose down
+    ```
 
 ## Running in the background
 You can use `tmux` (or `screen` if that's your preference, although I don't cover that here) to run hotplots in the background. 

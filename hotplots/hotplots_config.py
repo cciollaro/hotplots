@@ -1,6 +1,6 @@
 import sys
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Optional
 
 
 @dataclass(frozen=True)
@@ -70,6 +70,7 @@ class RemoteHostConfig:
     port: int
     max_concurrent_inbound_transfers: int
     drives: List[TargetDriveConfig]
+    key_path: Optional[str] = None
 
     def is_local(self):
         return False

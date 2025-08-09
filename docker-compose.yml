@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  sshd:
+    build:
+      context: .
+      dockerfile: docker/sshd/Dockerfile
+    ports:
+      - "2222:22" # Expose sshd on port 2222 to avoid conflict with host's sshd
+    volumes:
+      - shared_data:/home/sshuser/target
+    networks:
+      - hotplots_net
+
+  hotplots:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - sshd
+    volumes:
+      - .:/usr/src/app
+      - shared_data:/usr/src/app/source
+    networks:
+      - hotplots_net
+    command: tail -f /dev/null # Keep container running
+
+volumes:
+  shared_data:
+
+networks:
+  hotplots_net:
