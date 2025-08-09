@@ -1,7 +1,8 @@
 FROM alpine:latest
 
 RUN apk --no-cache add openssh \
-    && sed -i -e "s/#PermitRootLogin prohibit-password/PermitRootLogin yes/" /etc/ssh/sshd_config \
+    && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config \
     && ssh-keygen -A
 
 RUN adduser -D -s /bin/bash sshuser \
