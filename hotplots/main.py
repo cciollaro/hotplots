@@ -6,10 +6,14 @@ from hotplots.hotplots import Hotplots
 from hotplots.hotplots_logging import HotplotsLogging
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description='Hotplots - Chia Plots Archiving Program.')
+    parser.add_argument('--config', type=str, default='config.yaml', help='Path to the config file.')
+    args = parser.parse_args()
+
     hotplots_io = HotplotsIO()
 
-    # TODO get config filename from commandline args
-    config = hotplots_io.load_config_file("config-example.yaml")
+    config = hotplots_io.load_config_file(args.config)
     HotplotsLogging.initialize_logging(config.logging)
 
     hotplots = Hotplots(config, hotplots_io)

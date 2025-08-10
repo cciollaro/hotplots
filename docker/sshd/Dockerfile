@@ -1,0 +1,20 @@
+FROM alpine:latest
+
+RUN apk --no-cache add openssh \
+    && sed -i 's/^#?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config \
+    && sed -i 's/^#?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config \
+    && sed -i 's/^#?ChallengeResponseAuthentication.*/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config \
+    && ssh-keygen -A
+
+RUN adduser -D -s /bin/sh sshuser \
+    && echo "sshuser:password" | chpasswd
+
+RUN mkdir -p /home/sshuser/.ssh \
+    && chmod 700 /home/sshuser/.ssh
+
+# We will mount the public key from the hotplots container
+# so we don't need to copy it here.
+
+EXPOSE 22
+
+CMD ["/usr/sbin/sshd", "-D"]

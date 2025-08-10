@@ -112,11 +112,17 @@ class HotplotsIO:
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             resolved_ip = socket.gethostbyname(remote_host_config.hostname)
-            client.connect(
-                resolved_ip,
+            connect_args = dict(
                 port=remote_host_config.port,
-                username=remote_host_config.username
+                username=remote_host_config.username,
             )
+            if remote_host_config.key_path:
+                connect_args.update(
+                    pkey=paramiko.RSAKey.from_private_key_file(remote_host_config.key_path),
+                    allow_agent=False,
+                    look_for_keys=False,
+                )
+            client.connect(resolved_ip, **connect_args)
 
             sftp = client.open_sftp()
             target_drive_infos = []
@@ -206,11 +212,17 @@ class HotplotsIO:
                 resolved_ip = socket.gethostbyname(hot_plot_target_drive.host_config.hostname)
                 sftp = None
                 try:
-                    client.connect(
-                        resolved_ip,
+                    connect_args = dict(
                         port=hot_plot_target_drive.host_config.port,
-                        username=hot_plot_target_drive.host_config.username
+                        username=hot_plot_target_drive.host_config.username,
                     )
+                    if hot_plot_target_drive.host_config.key_path:
+                        connect_args.update(
+                            pkey=paramiko.RSAKey.from_private_key_file(hot_plot_target_drive.host_config.key_path),
+                            allow_agent=False,
+                            look_for_keys=False,
+                        )
+                    client.connect(resolved_ip, **connect_args)
 
                     sftp = client.open_sftp()
 
